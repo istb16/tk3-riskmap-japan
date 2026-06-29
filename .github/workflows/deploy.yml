@@ -35,9 +35,21 @@ jobs:
         run: npm run build
 
       - name: Deploy to Firebase Hosting
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          channelId: live
-          projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
+        shell: bash
+        run: |
+          echo "$SERVICE_ACCOUNT_JSON" > /tmp/sa.json
+          set +e
+          OUTPUT=$(npx firebase-tools@latest deploy --only hosting --project "$FIREBASE_PROJECT_ID" 2>&1)
+          RESULT=$?
+          echo "$OUTPUT"
+          set -e
+          if [ "$RESULT" -ne 0 ] && echo "$OUTPUT" | grep -q "current active version"; then
+            echo "コンテンツ未変更のためデプロイをスキップしました"
+            exit 0
+          fi
+          rm -f /tmp/sa.json
+          exit "$RESULT"
+        env:
+          SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/sa.json
