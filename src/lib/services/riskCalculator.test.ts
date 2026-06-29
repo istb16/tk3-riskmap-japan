@@ -33,7 +33,7 @@ function makeWeather(overrides: Partial<WeatherData> = {}): WeatherData {
 }
 
 function makeEarthquake(overrides: Partial<EarthquakeData> = {}): EarthquakeData {
-	return { magnitude: null, place: null, time: null, depth: null, ...overrides };
+	return { magnitude: null, place: null, time: null, depth: null, distanceKm: null, ...overrides };
 }
 
 function makeAir(overrides: Partial<AirData> = {}): AirData {
@@ -73,9 +73,9 @@ describe('scoreWeather', () => {
 	});
 
 	describe('風速によるスコア', () => {
-		it('windSpeed=45 → +10点(強風)', () => {
+		it('windSpeed=45 → +12点(強風)', () => {
 			const result = scoreWeather(makeWeather({ windSpeed: 45 }));
-			expect(result.score).toBe(10);
+			expect(result.score).toBe(12);
 			expect(result.reasons).toContainEqual(expect.stringContaining('強風'));
 		});
 
@@ -86,21 +86,29 @@ describe('scoreWeather', () => {
 		});
 
 		it('special+暴風 → 70点', () => {
+			// special=50 + 暴風(65km/h)=20
 			const result = scoreWeather(makeWeather({ alertLevel: 'special', windSpeed: 65, weatherCode: 95 }));
 			expect(result.score).toBe(70);
 		});
 	});
 
 	describe('気温(熱中症)によるスコア', () => {
-		it('temperature=29 → heat なし', () => {
-			const result = scoreWeather(makeWeather({ temperature: 29 }));
+		it('temperature=27 → heat なし', () => {
+			const result = scoreWeather(makeWeather({ temperature: 27 }));
 			expect(result.riskTypes).not.toContain('heat');
 			expect(result.score).toBe(0);
 		});
 
-		it('temperature=32 → +20点(猛暑), heat リスクあり', () => {
+		it('temperature=29 → +8点(真夏日)', () => {
+			const result = scoreWeather(makeWeather({ temperature: 29 }));
+			expect(result.riskTypes).toContain('heat');
+			expect(result.score).toBe(8);
+			expect(result.reasons).toContainEqual(expect.stringContaining('真夏日'));
+		});
+
+		it('temperature=32 → +15点(猛暑), heat リスクあり', () => {
 			const result = scoreWeather(makeWeather({ temperature: 32 }));
-			expect(result.score).toBe(20);
+			expect(result.score).toBe(15);
 			expect(result.riskTypes).toContain('heat');
 			expect(result.reasons).toContainEqual(expect.stringContaining('猛暑'));
 		});

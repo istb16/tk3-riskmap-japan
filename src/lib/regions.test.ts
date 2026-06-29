@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { REGIONS } from './regions';
 
 describe('REGIONS', () => {
-	it('15都市が定義されている', () => {
-		expect(REGIONS).toHaveLength(15);
+	it('47都道府県が定義されている', () => {
+		expect(REGIONS).toHaveLength(47);
 	});
 
 	it('すべてのIDが一意である', () => {
@@ -35,11 +35,13 @@ describe('REGIONS', () => {
 		}
 	});
 
-	it('主要都市が含まれている', () => {
+	it('代表的な都道府県が含まれている', () => {
 		const ids = REGIONS.map((r) => r.id);
 		expect(ids).toContain('tokyo');
 		expect(ids).toContain('osaka');
-		expect(ids).toContain('sapporo');
-		expect(ids).toContain('naha');
+		expect(ids).toContain('hokkaido');
+		expect(ids).toContain('okinawa');
+		expect(ids).toContain('aichi');
+		expect(ids).toContain('fukuoka');
 	});
 });

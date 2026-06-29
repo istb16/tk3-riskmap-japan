@@ -1,11 +1,20 @@
 export type RiskType = 'weather' | 'earthquake' | 'heat' | 'air';
 
+/** スコア内訳の1行分 */
+export interface ScoreItem {
+	label: string;
+	points: number;
+	note?: string;  // "基礎40点 × 減衰0.43" など減衰がある場合のみ
+}
+
 export interface RegionRisk {
 	id: string;
 	name: string;
 	lat: number;
 	lng: number;
 	riskScore: number;
+	rawScore: number;       // キャップ前の合計点
+	scoreItems: ScoreItem[]; // スコア内訳
 	riskTypes: RiskType[];
 	reasons: string[];
 	updatedAt: number;
@@ -22,6 +31,8 @@ export interface WeatherData {
 	precipitation: number;
 	windSpeed: number;
 	alertLevel: 'none' | 'advisory' | 'warning' | 'special';
+	/** Open-Meteo current.time をミリ秒UNIXタイムスタンプに変換した観測時刻 */
+	observedAt?: number | null;
 }
 
 export interface EarthquakeData {
@@ -29,6 +40,7 @@ export interface EarthquakeData {
 	place: string | null;
 	time: number | null;
 	depth: number | null;
+	distanceKm: number | null;
 }
 
 export interface AirData {

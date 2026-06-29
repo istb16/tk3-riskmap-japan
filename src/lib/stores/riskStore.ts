@@ -14,7 +14,8 @@ export const rankedRegions = derived(regions, ($r) =>
 	[...$r].sort((a, b) => b.riskScore - a.riskScore)
 );
 
-export const top10 = derived(rankedRegions, ($r) => $r.slice(0, 10));
+/** @deprecated rankedRegions を直接使用してください */
+export const top10 = derived(rankedRegions, ($r) => $r);
 
 let refreshTimer: ReturnType<typeof setInterval> | null = null;
 

@@ -16,54 +16,54 @@
 
 ## 技術スタック
 
-| 要素 | 技術 |
-|------|------|
-| フレームワーク | SvelteKit（Svelte 5 Runes モード） |
-| ビルド | Vite + @sveltejs/adapter-static |
-| 地図 | Leaflet 1.x |
-| テスト | Vitest |
-| ホスティング | Firebase Hosting（`build/` フォルダ） |
-| 状態管理 | Svelte store（writable / derived） |
+| 要素           | 技術                                  |
+| -------------- | ------------------------------------- |
+| フレームワーク | SvelteKit（Svelte 5 Runes モード）    |
+| ビルド         | Vite + @sveltejs/adapter-static       |
+| 地図           | Leaflet 1.x                           |
+| テスト         | Vitest                                |
+| ホスティング   | Firebase Hosting（`build/` フォルダ） |
+| 状態管理       | Svelte store（writable / derived）    |
 
 ## 使用API（すべて無料・認証不要）
 
-| API | 用途 | エンドポイント |
-|-----|------|--------------|
-| Open-Meteo Forecast | 気温・降水量・風速・天気コード | `https://api.open-meteo.com/v1/forecast` |
-| Open-Meteo Air Quality | PM2.5・AQI | `https://air-quality-api.open-meteo.com/v1/air-quality` |
-| USGS FDSN | 地震マグニチュード（過去7日） | `https://earthquake.usgs.gov/fdsnws/event/1/query` |
+| API                    | 用途                           | エンドポイント                                          |
+| ---------------------- | ------------------------------ | ------------------------------------------------------- |
+| Open-Meteo Forecast    | 気温・降水量・風速・天気コード | `https://api.open-meteo.com/v1/forecast`                |
+| Open-Meteo Air Quality | PM2.5・AQI                     | `https://air-quality-api.open-meteo.com/v1/air-quality` |
+| USGS FDSN              | 地震マグニチュード（過去7日）  | `https://earthquake.usgs.gov/fdsnws/event/1/query`      |
 
 ## スコアリングロジック
 
 各指標を以下の基準で加点し、合計を最大100でキャップする。
 
-| 条件 | 加点 |
-|------|------|
-| 特別警報（WMO severe code） | +50 |
-| 大雨警報（WMO warning code） | +30 |
-| 気象注意報 | +15 |
-| 暴風 ≥60km/h | +20 |
-| 強風 ≥40km/h | +10 |
-| 熱中症危険域 ≥35℃ | +30 |
-| 猛暑 ≥30℃ | +20 |
-| 地震 M5+ | +40 |
-| 地震 M4+ | +20 |
-| 地震 M3.5+ | +10 |
-| PM2.5 ≥100μg/m³ | +40 |
-| PM2.5 ≥50μg/m³ | +25 |
-| PM2.5 ≥25μg/m³ | +10 |
+| 条件                         | 加点 |
+| ---------------------------- | ---- |
+| 特別警報（WMO severe code）  | +50  |
+| 大雨警報（WMO warning code） | +30  |
+| 気象注意報                   | +15  |
+| 暴風 ≥60km/h                 | +20  |
+| 強風 ≥40km/h                 | +10  |
+| 熱中症危険域 ≥35℃            | +30  |
+| 猛暑 ≥30℃                    | +20  |
+| 地震 M5+                     | +40  |
+| 地震 M4+                     | +20  |
+| 地震 M3.5+                   | +10  |
+| PM2.5 ≥100μg/m³              | +40  |
+| PM2.5 ≥50μg/m³               | +25  |
+| PM2.5 ≥25μg/m³               | +10  |
 
 ## カラーパレット
 
-| 危険度 | スコア | 色 |
-|--------|--------|-----|
-| 安全 | 0〜30 | `#22c55e`（緑） |
-| 注意 | 31〜60 | `#f59e0b`（黄） |
-| 危険 | 61〜100 | `#ef4444`（赤） |
+| 危険度 | スコア  | 色              |
+| ------ | ------- | --------------- |
+| 安全   | 0〜30   | `#22c55e`（緑） |
+| 注意   | 31〜60  | `#f59e0b`（黄） |
+| 危険   | 61〜100 | `#ef4444`（赤） |
 
 ## ディレクトリ構成
 
-```
+```tree
 src/
   lib/
     api/
@@ -117,6 +117,7 @@ npm test
 ```
 
 対象モジュール：
+
 - `src/lib/api/weather.test.ts`
 - `src/lib/api/earthquake.test.ts`
 - `src/lib/api/air.test.ts`

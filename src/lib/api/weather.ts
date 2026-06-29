@@ -3,6 +3,7 @@ import { fetchJson } from './http';
 
 interface OpenMeteoWeatherResponse {
 	current: {
+		time: string; // "YYYY-MM-DDTHH:MM" in requested timezone
 		temperature_2m: number;
 		weather_code: number;
 		precipitation: number;
@@ -23,6 +24,11 @@ export async function fetchWeather(lat: number, lng: number): Promise<WeatherDat
 	const precip = data.current.precipitation ?? 0;
 	const wind = data.current.wind_speed_10m ?? 0;
 
+	// "YYYY-MM-DDTHH:MM" はタイムゾーン情報なし。JST (UTC+9) として解釈する
+	const observedAt = data.current.time
+		? new Date(data.current.time + ':00+09:00').getTime()
+		: null;
+
 	let alertLevel: WeatherData['alertLevel'] = 'none';
 	if (WMO_SEVERE.includes(code) || precip > 30) alertLevel = 'special';
 	else if (WMO_WARNING.includes(code) || precip > 10) alertLevel = 'warning';
@@ -33,7 +39,8 @@ export async function fetchWeather(lat: number, lng: number): Promise<WeatherDat
 		weatherCode: code,
 		precipitation: precip,
 		windSpeed: wind,
-		alertLevel
+		alertLevel,
+		observedAt
 	};
 }
 
