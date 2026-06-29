@@ -134,7 +134,7 @@
 </script>
 
 <svelte:head>
-	<title>日本リアルタイム危険マップ</title>
+	<title>JAPAN RISK MAP</title>
 </svelte:head>
 
 <div class="app">
@@ -143,7 +143,7 @@
 		<div class="header-inner">
 			<div class="header-left">
 				<span class="live-badge">LIVE</span>
-				<h1>日本リアルタイム危険マップ</h1>
+				<h1>JAPAN RISK MAP</h1>
 			</div>
 			<div class="header-right">
 				{#if $loading}
