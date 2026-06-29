@@ -1,10 +1,92 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+
+  <!-- Background -->
   <rect width="1200" height="630" fill="#0f172a"/>
-  <rect x="0" y="0" width="1200" height="6" fill="#ef4444"/>
-  <circle cx="600" cy="240" r="80" fill="#ef4444" opacity="0.15"/>
-  <circle cx="600" cy="240" r="50" fill="#ef4444" opacity="0.3"/>
-  <circle cx="600" cy="240" r="24" fill="#ef4444"/>
-  <text x="600" y="380" font-family="sans-serif" font-size="52" font-weight="900" fill="white" text-anchor="middle">日本リアルタイム危険マップ</text>
-  <text x="600" y="440" font-family="sans-serif" font-size="26" fill="#94a3b8" text-anchor="middle">気象・地震・熱中症・大気汚染を統合スコアで可視化</text>
-  <text x="600" y="540" font-family="sans-serif" font-size="20" fill="#ef4444" text-anchor="middle">🔴 LIVE</text>
+
+  <!-- Top danger stripe -->
+  <rect x="0" y="0" width="1200" height="5" fill="#ef4444"/>
+
+  <!-- Subtle vertical divider -->
+  <line x1="600" y1="60" x2="600" y2="578" stroke="#1e293b" stroke-width="1.5"/>
+
+  <!-- ─── LEFT: Title + metadata ─── -->
+
+  <!-- LIVE dot + label -->
+  <circle cx="72" cy="68" r="5" fill="#ef4444"/>
+  <text x="87" y="74" font-family="'Courier New',Consolas,monospace" font-size="13" font-weight="700" fill="#64748b" letter-spacing="0.14em">LIVE</text>
+
+  <!-- Modifier line -->
+  <text x="64" y="182" font-family="'Hiragino Sans','Noto Sans JP','Yu Gothic UI',sans-serif" font-size="50" font-weight="700" fill="#475569">日本リアルタイム</text>
+
+  <!-- Main title -->
+  <text x="64" y="282" font-family="'Hiragino Sans','Noto Sans JP','Yu Gothic UI',sans-serif" font-size="84" font-weight="900" fill="#f1f5f9">危険マップ</text>
+
+  <!-- Red accent rule -->
+  <rect x="64" y="306" width="112" height="3" fill="#ef4444" rx="1.5"/>
+
+  <!-- Subtitle -->
+  <text x="64" y="352" font-family="'Hiragino Sans','Noto Sans JP','Yu Gothic UI',sans-serif" font-size="21" fill="#94a3b8">気象・地震・熱中症・大気汚染を</text>
+  <text x="64" y="382" font-family="'Hiragino Sans','Noto Sans JP','Yu Gothic UI',sans-serif" font-size="21" fill="#94a3b8">統合スコアで可視化するマップ</text>
+
+  <!-- Risk level legend -->
+  <circle cx="72" cy="452" r="6" fill="#ef4444"/>
+  <text x="88" y="457" font-family="'Hiragino Sans','Noto Sans JP','Yu Gothic UI',sans-serif" font-size="18" font-weight="700" fill="#ef4444">危険</text>
+  <text x="136" y="457" font-family="'Courier New',monospace" font-size="13" fill="#475569">61 – 100</text>
+
+  <circle cx="72" cy="490" r="6" fill="#f59e0b"/>
+  <text x="88" y="495" font-family="'Hiragino Sans','Noto Sans JP','Yu Gothic UI',sans-serif" font-size="18" font-weight="700" fill="#f59e0b">注意</text>
+  <text x="136" y="495" font-family="'Courier New',monospace" font-size="13" fill="#475569">31 – 60</text>
+
+  <circle cx="72" cy="528" r="6" fill="#22c55e"/>
+  <text x="88" y="533" font-family="'Hiragino Sans','Noto Sans JP','Yu Gothic UI',sans-serif" font-size="18" font-weight="700" fill="#22c55e">安全</text>
+  <text x="136" y="533" font-family="'Courier New',monospace" font-size="13" fill="#475569">0 – 30</text>
+
+  <!-- URL -->
+  <text x="64" y="596" font-family="'Courier New',monospace" font-size="14" fill="#334155">riskmap.tk3.biz</text>
+
+  <!-- ─── RIGHT: Danger ranking ─── -->
+
+  <!-- Section label -->
+  <text x="640" y="76" font-family="'Courier New',Consolas,monospace" font-size="12" font-weight="700" fill="#475569" letter-spacing="0.16em">DANGER RANKING</text>
+
+  <!-- Card 1 — 那覇 70 危険 -->
+  <rect x="640" y="94" width="496" height="108" fill="#1e293b" rx="8"/>
+  <text x="672" y="159" font-family="'Courier New',monospace" font-size="17" fill="#475569">#1</text>
+  <text x="716" y="146" font-family="'Hiragino Sans','Noto Sans JP','Yu Gothic UI',sans-serif" font-size="29" font-weight="800" fill="#f1f5f9">那覇</text>
+  <rect x="716" y="170" width="328" height="4" fill="#334155" rx="2"/>
+  <rect x="716" y="170" width="230" height="4" fill="#ef4444" rx="2"/>
+  <text x="1112" y="152" font-family="'Courier New',monospace" font-size="38" font-weight="700" fill="#ef4444" text-anchor="end">70</text>
+  <text x="1112" y="172" font-family="'Hiragino Sans','Noto Sans JP','Yu Gothic UI',sans-serif" font-size="14" font-weight="700" fill="#ef4444" text-anchor="end">危険</text>
+
+  <!-- Card 2 — 東京 45 注意 -->
+  <rect x="640" y="218" width="496" height="108" fill="#1e293b" rx="8"/>
+  <text x="672" y="283" font-family="'Courier New',monospace" font-size="17" fill="#475569">#2</text>
+  <text x="716" y="270" font-family="'Hiragino Sans','Noto Sans JP','Yu Gothic UI',sans-serif" font-size="29" font-weight="800" fill="#f1f5f9">東京</text>
+  <rect x="716" y="294" width="328" height="4" fill="#334155" rx="2"/>
+  <rect x="716" y="294" width="148" height="4" fill="#f59e0b" rx="2"/>
+  <text x="1112" y="276" font-family="'Courier New',monospace" font-size="38" font-weight="700" fill="#f59e0b" text-anchor="end">45</text>
+  <text x="1112" y="296" font-family="'Hiragino Sans','Noto Sans JP','Yu Gothic UI',sans-serif" font-size="14" font-weight="700" fill="#f59e0b" text-anchor="end">注意</text>
+
+  <!-- Card 3 — 札幌 18 安全 -->
+  <rect x="640" y="342" width="496" height="108" fill="#1e293b" rx="8"/>
+  <text x="672" y="407" font-family="'Courier New',monospace" font-size="17" fill="#475569">#3</text>
+  <text x="716" y="394" font-family="'Hiragino Sans','Noto Sans JP','Yu Gothic UI',sans-serif" font-size="29" font-weight="800" fill="#f1f5f9">札幌</text>
+  <rect x="716" y="418" width="328" height="4" fill="#334155" rx="2"/>
+  <rect x="716" y="418" width="59" height="4" fill="#22c55e" rx="2"/>
+  <text x="1112" y="400" font-family="'Courier New',monospace" font-size="38" font-weight="700" fill="#22c55e" text-anchor="end">18</text>
+  <text x="1112" y="420" font-family="'Hiragino Sans','Noto Sans JP','Yu Gothic UI',sans-serif" font-size="14" font-weight="700" fill="#22c55e" text-anchor="end">安全</text>
+
+  <!-- Card 4 — 大阪 (faded, implies more) -->
+  <rect x="640" y="466" width="496" height="108" fill="#1e293b" rx="8" opacity="0.45"/>
+  <text x="672" y="531" font-family="'Courier New',monospace" font-size="17" fill="#334155">#4</text>
+  <text x="716" y="518" font-family="'Hiragino Sans','Noto Sans JP','Yu Gothic UI',sans-serif" font-size="29" font-weight="800" fill="#4b5563">大阪</text>
+  <rect x="716" y="542" width="328" height="4" fill="#263548" rx="2"/>
+  <rect x="716" y="542" width="79" height="4" fill="#374151" rx="2"/>
+  <text x="1112" y="524" font-family="'Courier New',monospace" font-size="38" font-weight="700" fill="#4b5563" text-anchor="end">24</text>
+  <text x="1112" y="544" font-family="'Hiragino Sans','Noto Sans JP','Yu Gothic UI',sans-serif" font-size="14" font-weight="700" fill="#4b5563" text-anchor="end">安全</text>
+
+  <!-- Seismograph wave at bottom -->
+  <polyline fill="none" stroke="#1e293b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+    points="0,613 40,613 44,606 48,620 52,613 90,613 94,605 98,621 102,610 106,616 110,613 150,613 154,607 158,619 162,613 200,613 204,604 208,622 212,609 216,617 220,613 260,613 264,608 268,618 272,613 310,613 314,606 318,620 322,613 360,613 364,605 368,621 372,610 376,616 380,613 420,613 424,607 428,619 432,613 470,613 474,604 478,622 482,609 486,617 490,613 530,613 534,608 538,618 542,613 580,613 584,606 588,620 592,613 630,613 634,605 638,621 642,610 646,616 650,613 690,613 694,607 698,619 702,613 740,613 744,604 748,622 752,609 756,617 760,613 800,613 804,608 808,618 812,613 850,613 854,606 858,620 862,613 900,613 904,605 908,621 912,610 916,616 920,613 960,613 964,607 968,619 972,613 1010,613 1014,604 1018,622 1022,609 1026,617 1030,613 1070,613 1074,608 1078,618 1082,613 1120,613 1124,606 1128,620 1132,613 1170,613 1175,605 1180,619 1185,613 1200,613"/>
+
 </svg>
