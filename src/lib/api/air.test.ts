@@ -13,7 +13,7 @@ describe('fetchAirQuality', () => {
 			ok: true,
 			json: () => Promise.resolve(makeOpenMeteoAirResponse(18, 42)),
 		}));
-		const result = await fetchAirQuality('Tokyo', 35.6, 139.7);
+		const result = await fetchAirQuality(35.6, 139.7);
 		expect(result.pm25).toBe(18);
 		expect(result.aqi).toBe(42);
 	});
@@ -23,19 +23,17 @@ describe('fetchAirQuality', () => {
 			ok: true,
 			json: () => Promise.resolve(makeOpenMeteoAirResponse(null, null)),
 		}));
-		const result = await fetchAirQuality('Tokyo', 35.6, 139.7);
+		const result = await fetchAirQuality(35.6, 139.7);
 		expect(result).toEqual({ pm25: null, aqi: null });
 	});
 
-	it('HTTPエラーの場合、{ pm25: null, aqi: null } を返す', async () => {
+	it('HTTPエラーの場合、エラーをスローする', async () => {
 		vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503 }));
-		const result = await fetchAirQuality('Tokyo', 35.6, 139.7);
-		expect(result).toEqual({ pm25: null, aqi: null });
+		await expect(fetchAirQuality(35.6, 139.7)).rejects.toThrow('503');
 	});
 
-	it('ネットワークエラーの場合、{ pm25: null, aqi: null } を返す', async () => {
+	it('ネットワークエラーの場合、エラーをスローする', async () => {
 		vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network error')));
-		const result = await fetchAirQuality('Tokyo', 35.6, 139.7);
-		expect(result).toEqual({ pm25: null, aqi: null });
+		await expect(fetchAirQuality(35.6, 139.7)).rejects.toThrow('Network error');
 	});
 });

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { rankedRegions, loading, lastUpdated, error, selectedRegion, startAutoRefresh, stopAutoRefresh } from '$lib/stores/riskStore';
+	import { formatDateTime } from '$lib/services/riskCalculator';
 	import type { Map as LeafletMap, Marker } from 'leaflet';
 
 	let mapEl: HTMLDivElement = $state()!;
@@ -8,6 +9,8 @@
 	let markers: Marker[] = [];
 	let activeTab: 'ranking' | 'map' = $state('ranking');
 	let mapInitialized = false;
+
+	const SEISMO_POINTS = '0,14 18,14 23,7 28,21 33,14 55,14 60,3 65,25 70,12 75,20 80,14 110,14 115,9 120,19 125,14 160,14 165,5 170,23 175,8 180,22 185,14 215,14 220,12 225,16 230,14 260,14 265,4 270,24 275,11 280,17 285,14 315,14 320,8 325,20 330,14 365,14 370,6 375,22 380,10 385,18 390,14 420,14 425,9 430,19 435,14 460,14 465,3 470,25 475,8 480,20 485,14 510,14 515,11 520,17 525,14 555,14 560,7 565,21 570,14 590,14 600,14';
 
 	let waveColor = $derived(scoreColor($rankedRegions[0]?.riskScore ?? 0));
 
@@ -17,12 +20,14 @@
 		return '#16A34A';
 	}
 
-	function riskTypeEmoji(type: string): string {
-		const emojis: Record<string, string> = {
-			weather: '🌧️', earthquake: '🏔️', heat: '🔥', air: '💨'
-		};
-		return emojis[type] ?? '⚠️';
-	}
+	const RISK_TYPE: Record<string, { emoji: string; label: string }> = {
+		weather:    { emoji: '🌧️', label: '気象' },
+		earthquake: { emoji: '🏔️', label: '地震' },
+		heat:       { emoji: '🔥', label: '熱波' },
+		air:        { emoji: '💨', label: '大気' }
+	};
+	const riskTypeEmoji = (t: string) => RISK_TYPE[t]?.emoji ?? '⚠️';
+	const riskTypeLabel = (t: string) => RISK_TYPE[t]?.label ?? '警報';
 
 	function scoreLabel(score: number): string {
 		if (score >= 61) return '危険';
@@ -30,23 +35,8 @@
 		return '安全';
 	}
 
-	function riskTypeLabel(type: string): string {
-		const labels: Record<string, string> = {
-			weather: '気象', earthquake: '地震', heat: '熱波', air: '大気'
-		};
-		return labels[type] ?? '警報';
-	}
-
 	function formatTime(ts: number): string {
 		return new Date(ts).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
-	}
-
-	function formatDateTime(ts: number): string {
-		return new Date(ts).toLocaleString('ja-JP', {
-			month: 'numeric', day: 'numeric',
-			hour: '2-digit', minute: '2-digit',
-			timeZone: 'Asia/Tokyo'
-		});
 	}
 
 	async function initMap() {
@@ -100,12 +90,12 @@
 
 	async function ensureMapInit() {
 		if (mapInitialized || !mapEl) return;
-		mapInitialized = true;
-		await initMap();
-		requestAnimationFrame(() => {
-			map?.invalidateSize();
-			map?.setView([36.5, 136.0], 5);
-		});
+		try {
+			mapInitialized = true;
+			await initMap();
+		} catch {
+			mapInitialized = false;
+		}
 	}
 
 	$effect(() => {
@@ -168,14 +158,10 @@
 		<div class="seismo-wrap" aria-hidden="true">
 			<div class="seismo-inner">
 				<svg viewBox="0 0 600 28" preserveAspectRatio="none" class="seismo-svg">
-					<polyline style="stroke:{waveColor}" class="seismo-line"
-						points="0,14 18,14 23,7 28,21 33,14 55,14 60,3 65,25 70,12 75,20 80,14 110,14 115,9 120,19 125,14 160,14 165,5 170,23 175,8 180,22 185,14 215,14 220,12 225,16 230,14 260,14 265,4 270,24 275,11 280,17 285,14 315,14 320,8 325,20 330,14 365,14 370,6 375,22 380,10 385,18 390,14 420,14 425,9 430,19 435,14 460,14 465,3 470,25 475,8 480,20 485,14 510,14 515,11 520,17 525,14 555,14 560,7 565,21 570,14 590,14 600,14"
-					/>
+					<polyline style="stroke:{waveColor}" class="seismo-line" points={SEISMO_POINTS} />
 				</svg>
 				<svg viewBox="0 0 600 28" preserveAspectRatio="none" class="seismo-svg">
-					<polyline style="stroke:{waveColor}" class="seismo-line"
-						points="0,14 18,14 23,7 28,21 33,14 55,14 60,3 65,25 70,12 75,20 80,14 110,14 115,9 120,19 125,14 160,14 165,5 170,23 175,8 180,22 185,14 215,14 220,12 225,16 230,14 260,14 265,4 270,24 275,11 280,17 285,14 315,14 320,8 325,20 330,14 365,14 370,6 375,22 380,10 385,18 390,14 420,14 425,9 430,19 435,14 460,14 465,3 470,25 475,8 480,20 485,14 510,14 515,11 520,17 525,14 555,14 560,7 565,21 570,14 590,14 600,14"
-					/>
+					<polyline style="stroke:{waveColor}" class="seismo-line" points={SEISMO_POINTS} />
 				</svg>
 			</div>
 		</div>

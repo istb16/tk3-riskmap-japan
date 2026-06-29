@@ -20,6 +20,10 @@ interface USGSFeatureCollection {
 	features: USGSFeature[];
 }
 
+const MIN_MAG = 3.0;
+const RADIUS_KM = 3 * 111;
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
 	const R = 6371;
 	const dLat = (lat2 - lat1) * (Math.PI / 180);
@@ -31,13 +35,12 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
 }
 
 export async function fetchEarthquake(lat: number, lng: number): Promise<EarthquakeData> {
-	const minMag = 3.0;
 	const now = new Date();
-	const past = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-	const startTime = past.toISOString().split('T')[0];
-	const radiusKm = 3 * 111;
+	const past = new Date(now.getTime() - SEVEN_DAYS_MS);
+	const startTime = past.toISOString().slice(0, 10);
+	const radiusKm = RADIUS_KM;
 
-	const url = `https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=${startTime}&latitude=${lat}&longitude=${lng}&maxradiuskm=${radiusKm}&minmagnitude=${minMag}&orderby=magnitude&limit=1`;
+	const url = `https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=${startTime}&latitude=${lat}&longitude=${lng}&maxradiuskm=${radiusKm}&minmagnitude=${MIN_MAG}&orderby=magnitude&limit=1`;
 
 	const data = await fetchJson<USGSFeatureCollection>(url, 'Earthquake');
 

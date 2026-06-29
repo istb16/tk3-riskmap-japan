@@ -27,7 +27,7 @@ function emptyContribution(): ScoreContribution {
 }
 
 /** タイムスタンプ（ms）を「M/D HH:mm」形式の日本語日時文字列に変換 */
-function formatDateTime(ts: number): string {
+export function formatDateTime(ts: number): string {
 	return new Date(ts).toLocaleString('ja-JP', {
 		month: 'numeric',
 		day: 'numeric',
@@ -37,13 +37,17 @@ function formatDateTime(ts: number): string {
 	});
 }
 
+function ageInDays(timeMs: number): number {
+	return (Date.now() - timeMs) / (1000 * 60 * 60 * 24);
+}
+
 /**
  * 地震発生からの経過時間による減衰係数。
  * 0日=1.0、3日=0.1 の線形減衰。3日以降は0.1を維持。
  */
 function earthquakeTimeFactor(timeMs: number | null): number {
 	if (!timeMs) return 1.0;
-	const ageDays = (Date.now() - timeMs) / (1000 * 60 * 60 * 24);
+	const ageDays = ageInDays(timeMs);
 	if (ageDays <= 0) return 1.0;
 	if (ageDays >= 3) return 0.1;
 	return 1.0 - 0.9 * (ageDays / 3);
@@ -140,8 +144,7 @@ export function scoreEarthquake(eq: EarthquakeData): ScoreContribution {
 	if (combinedFactor < 0.99) {
 		const decayDetails: string[] = [];
 		if (eq.time) {
-			const ageDays = (Date.now() - eq.time) / (1000 * 60 * 60 * 24);
-			decayDetails.push(`${ageDays.toFixed(1)}日経過`);
+			decayDetails.push(`${ageInDays(eq.time).toFixed(1)}日経過`);
 		}
 		if (eq.distanceKm !== null) {
 			decayDetails.push(`震源${Math.round(eq.distanceKm)}km`);
@@ -166,7 +169,7 @@ export async function calculateRegionRisk(region: Region): Promise<RegionRisk> {
 	const [weather, earthquake, air] = await Promise.allSettled([
 		fetchWeather(region.lat, region.lng),
 		fetchEarthquake(region.lat, region.lng),
-		fetchAirQuality(region.city, region.lat, region.lng)
+		fetchAirQuality(region.lat, region.lng)
 	]);
 
 	const w = valueOrNull(weather);
@@ -190,7 +193,7 @@ export async function calculateRegionRisk(region: Region): Promise<RegionRisk> {
 		rawScore: totalScore,
 		riskScore: Math.min(MAX_SCORE, totalScore),
 		scoreItems,
-		riskTypes: [...new Set(contributions.flatMap((c) => c.riskTypes))],
+		riskTypes: contributions.flatMap((c) => c.riskTypes),
 		reasons: reasons.length > 0 ? reasons : ['現在危険情報なし'],
 		updatedAt: Date.now(),
 		details: {

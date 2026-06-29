@@ -11,8 +11,8 @@ interface OpenMeteoWeatherResponse {
 	};
 }
 
-const WMO_SEVERE: number[] = [65, 67, 75, 77, 82, 85, 86, 95, 96, 99];
-const WMO_WARNING: number[] = [61, 63, 71, 73, 80, 81, 55, 57];
+const WMO_SEVERE = new Set([65, 67, 75, 77, 82, 85, 86, 95, 96, 99]);
+const WMO_WARNING = new Set([61, 63, 71, 73, 80, 81, 55, 57]);
 
 export async function fetchWeather(lat: number, lng: number): Promise<WeatherData> {
 	const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weather_code,precipitation,wind_speed_10m&timezone=Asia%2FTokyo&forecast_days=1`;
@@ -30,8 +30,8 @@ export async function fetchWeather(lat: number, lng: number): Promise<WeatherDat
 		: null;
 
 	let alertLevel: WeatherData['alertLevel'] = 'none';
-	if (WMO_SEVERE.includes(code) || precip > 30) alertLevel = 'special';
-	else if (WMO_WARNING.includes(code) || precip > 10) alertLevel = 'warning';
+	if (WMO_SEVERE.has(code) || precip > 30) alertLevel = 'special';
+	else if (WMO_WARNING.has(code) || precip > 10) alertLevel = 'warning';
 	else if (precip > 2 || wind > 50) alertLevel = 'advisory';
 
 	return {
