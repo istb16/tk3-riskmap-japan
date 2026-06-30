@@ -1,5 +1,6 @@
 import type { JmaData, JmaWarningArea } from '../types';
 import { fetchJson } from './http';
+import { runWithConcurrency } from '../utils/concurrent';
 
 interface JmaWarningEntry {
 	type: string;
@@ -44,7 +45,15 @@ export async function fetchJmaWarnings(prefCode: string): Promise<JmaData> {
 		.filter((area) => area.warnings.length > 0);
 
 	const allWarnings = activeAreas.flatMap((a) => a.warnings);
-	const alertLevel = alertLevelFromWarnings(allWarnings);
+	return { areas: activeAreas, alertLevel: alertLevelFromWarnings(allWarnings) };
+}
 
-	return { areas: activeAreas, alertLevel };
+/**
+ * 全都道府県の警報データを同時実行数5で取得する。
+ * 一度に47リクエストを飛ばさず、5本ずつ処理してAPIへの負荷を抑える。
+ */
+export async function fetchAllJmaWarnings(
+	regions: Array<{ jmaCode: string }>
+): Promise<(JmaData | null)[]> {
+	return runWithConcurrency(regions, (r) => fetchJmaWarnings(r.jmaCode), 5);
 }

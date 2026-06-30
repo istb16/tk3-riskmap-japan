@@ -1,8 +1,7 @@
 import { writable, derived } from 'svelte/store';
 import type { RegionRisk } from '../types';
 import { REGIONS } from '../regions';
-import { calculateRegionRisk } from '../services/riskCalculator';
-import { isFulfilled } from '../utils/settled';
+import { calculateAllRegionRisks } from '../services/riskCalculator';
 
 export const regions = writable<RegionRisk[]>([]);
 export const loading = writable(false);
@@ -21,22 +20,11 @@ export async function refreshAll() {
 	error.set(null);
 
 	try {
-		const results = await Promise.allSettled(
-			REGIONS.map((r) => calculateRegionRisk(r))
-		);
-
-		const data = results.filter(isFulfilled).map((r) => r.value);
-		const failedCount = results.filter((r) => r.status === 'rejected').length;
-
+		const data = await calculateAllRegionRisks(REGIONS);
 		regions.set(data);
 		lastUpdated.set(Date.now());
-
-		if (failedCount > 0) {
-			error.set(`${failedCount}件のデータ取得に失敗しました`);
-		} else {
-			error.set(null);
-		}
-	} catch (e) {
+		error.set(null);
+	} catch {
 		error.set('データ取得に失敗しました');
 	} finally {
 		loading.set(false);

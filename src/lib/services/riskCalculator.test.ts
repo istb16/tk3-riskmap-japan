@@ -13,11 +13,15 @@ vi.mock('../api/earthquake', () => ({
 vi.mock('../api/air', () => ({
 	fetchAirQuality: vi.fn(),
 }));
+vi.mock('../api/jma', () => ({
+	fetchJmaWarnings: vi.fn(),
+}));
 
 // モック済み関数を import（vi.mock のhoist後に解決される）
 import { fetchWeather } from '../api/weather';
 import { fetchEarthquake } from '../api/earthquake';
 import { fetchAirQuality } from '../api/air';
+import { fetchJmaWarnings } from '../api/jma';
 
 // ---- ヘルパー ---------------------------------------------------------------
 
@@ -206,6 +210,7 @@ describe('calculateRegionRisk', () => {
 		vi.mocked(fetchWeather).mockResolvedValue(makeWeather());
 		vi.mocked(fetchEarthquake).mockResolvedValue(makeEarthquake());
 		vi.mocked(fetchAirQuality).mockResolvedValue(makeAir());
+		vi.mocked(fetchJmaWarnings).mockResolvedValue({ areas: [], alertLevel: 'none' });
 	});
 
 	it('危険情報がない場合、「現在危険情報なし」を返す', async () => {

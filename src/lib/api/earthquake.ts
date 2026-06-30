@@ -24,6 +24,9 @@ const MIN_MAG = 3.0;
 const RADIUS_KM = 3 * 111;
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
+// 日本全体をカバーするバウンディングボックス
+const JAPAN_BOUNDS = { minLat: 24, maxLat: 47, minLng: 122, maxLng: 154 };
+
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
 	const R = 6371;
 	const dLat = (lat2 - lat1) * (Math.PI / 180);
@@ -34,21 +37,11 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
 	return R * 2 * Math.asin(Math.sqrt(a));
 }
 
-export async function fetchEarthquake(lat: number, lng: number): Promise<EarthquakeData> {
-	const now = new Date();
-	const past = new Date(now.getTime() - SEVEN_DAYS_MS);
-	const startTime = past.toISOString().slice(0, 10);
-	const radiusKm = RADIUS_KM;
-
-	const url = `https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=${startTime}&latitude=${lat}&longitude=${lng}&maxradiuskm=${radiusKm}&minmagnitude=${MIN_MAG}&orderby=magnitude&limit=1`;
-
-	const data = await fetchJson<USGSFeatureCollection>(url, 'Earthquake');
-
-	if (!data.features || data.features.length === 0) {
-		return { magnitude: null, place: null, time: null, depth: null, distanceKm: null };
-	}
-
-	const quake = data.features[0];
+function featureToEarthquakeData(
+	quake: USGSFeature,
+	regionLat: number,
+	regionLng: number
+): EarthquakeData {
 	const epicLng = quake.geometry.coordinates[0];
 	const epicLat = quake.geometry.coordinates[1];
 	return {
@@ -56,6 +49,51 @@ export async function fetchEarthquake(lat: number, lng: number): Promise<Earthqu
 		place: quake.properties.place,
 		time: quake.properties.time,
 		depth: quake.geometry.coordinates[2],
-		distanceKm: haversineKm(lat, lng, epicLat, epicLng)
+		distanceKm: haversineKm(regionLat, regionLng, epicLat, epicLng)
 	};
+}
+
+/** 単一地域の地震データを取得する（後方互換・テスト用）。 */
+export async function fetchEarthquake(lat: number, lng: number): Promise<EarthquakeData> {
+	const now = new Date();
+	const past = new Date(now.getTime() - SEVEN_DAYS_MS);
+	const startTime = past.toISOString().slice(0, 10);
+
+	const url = `https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=${startTime}&latitude=${lat}&longitude=${lng}&maxradiuskm=${RADIUS_KM}&minmagnitude=${MIN_MAG}&orderby=magnitude&limit=1`;
+	const data = await fetchJson<USGSFeatureCollection>(url, 'Earthquake');
+
+	if (!data.features || data.features.length === 0) {
+		return { magnitude: null, place: null, time: null, depth: null, distanceKm: null };
+	}
+	return featureToEarthquakeData(data.features[0], lat, lng);
+}
+
+/**
+ * 日本全体の地震データを1リクエストで取得し、各地域の最大規模の地震を返す。
+ * USGSから規模降順で取得するため、最初にヒットした地震が各地域で最も規模が大きい。
+ */
+export async function fetchEarthquakesAll(
+	regions: Array<{ lat: number; lng: number }>
+): Promise<EarthquakeData[]> {
+	const now = new Date();
+	const past = new Date(now.getTime() - SEVEN_DAYS_MS);
+	const startTime = past.toISOString().slice(0, 10);
+
+	const url =
+		`https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson` +
+		`&starttime=${startTime}` +
+		`&minlatitude=${JAPAN_BOUNDS.minLat}&maxlatitude=${JAPAN_BOUNDS.maxLat}` +
+		`&minlongitude=${JAPAN_BOUNDS.minLng}&maxlongitude=${JAPAN_BOUNDS.maxLng}` +
+		`&minmagnitude=${MIN_MAG}&orderby=magnitude&limit=500`;
+
+	const data = await fetchJson<USGSFeatureCollection>(url, 'EarthquakeBatch');
+	const features = data.features ?? [];
+
+	return regions.map((region) => {
+		for (const quake of features) {
+			const eq = featureToEarthquakeData(quake, region.lat, region.lng);
+			if ((eq.distanceKm ?? Infinity) <= RADIUS_KM) return eq;
+		}
+		return { magnitude: null, place: null, time: null, depth: null, distanceKm: null };
+	});
 }

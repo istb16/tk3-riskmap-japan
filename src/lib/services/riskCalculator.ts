@@ -1,8 +1,8 @@
 import type { RegionRisk, WeatherData, EarthquakeData, AirData, JmaData, RiskType, Region, ScoreItem } from '../types';
-import { fetchWeather, getWeatherLabel } from '../api/weather';
-import { fetchEarthquake } from '../api/earthquake';
-import { fetchAirQuality } from '../api/air';
-import { fetchJmaWarnings } from '../api/jma';
+import { fetchWeather, getWeatherLabel, fetchWeatherBatch } from '../api/weather';
+import { fetchEarthquake, fetchEarthquakesAll } from '../api/earthquake';
+import { fetchAirQuality, fetchAirQualityBatch } from '../api/air';
+import { fetchJmaWarnings, fetchAllJmaWarnings } from '../api/jma';
 import { valueOrNull } from '../utils/settled';
 import {
 	WIND_TIERS,
@@ -142,7 +142,8 @@ export function scoreEarthquake(eq: EarthquakeData): ScoreContribution {
 	const combinedFactor = timeFactor * distFactor;
 	const adjustedScore = Math.max(1, Math.round(tier.score * combinedFactor));
 
-	const label = tier.reason(eq.magnitude);
+	const dateStr = eq.time ? `（${formatDateTime(eq.time)}）` : '';
+	const label = tier.reason(eq.magnitude) + dateStr;
 
 	let note: string | undefined;
 	if (combinedFactor < 0.99) {
@@ -169,6 +170,69 @@ export function scoreAir(a: AirData): ScoreContribution {
 	return scoreMetric(a.pm25, PM25_TIERS, 'air');
 }
 
+/**
+ * 全地域のリスクデータをバッチAPIで効率的に取得して計算する。
+ * 個別に47回リクエストを送る代わりに、APIごとに1〜数リクエストにまとめる。
+ * - Open-Meteo 天気・大気: 各1リクエスト（47地点一括）
+ * - USGS 地震: 日本全体1リクエスト → 地域ごとに振り分け
+ * - JMA 警報: 同時実行数5で順次取得
+ */
+export async function calculateAllRegionRisks(regions: Region[]): Promise<RegionRisk[]> {
+	const [weatherSettled, earthquakeSettled, airSettled, jmaSettled] = await Promise.allSettled([
+		fetchWeatherBatch(regions),
+		fetchEarthquakesAll(regions),
+		fetchAirQualityBatch(regions),
+		fetchAllJmaWarnings(regions)
+	]);
+
+	const weathers: (WeatherData | null)[] =
+		valueOrNull(weatherSettled) ?? new Array<WeatherData | null>(regions.length).fill(null);
+	const earthquakes: (EarthquakeData | null)[] =
+		valueOrNull(earthquakeSettled) ?? new Array<EarthquakeData | null>(regions.length).fill(null);
+	const airs: (AirData | null)[] =
+		valueOrNull(airSettled) ?? new Array<AirData | null>(regions.length).fill(null);
+	const jmas: (JmaData | null)[] =
+		valueOrNull(jmaSettled) ?? new Array<JmaData | null>(regions.length).fill(null);
+
+	const now = Date.now();
+
+	return regions.map((region, i) => {
+		const w = weathers[i] ?? null;
+		const eq = earthquakes[i] ?? null;
+		const a = airs[i] ?? null;
+		const j = jmas[i] ?? null;
+
+		const contributions: ScoreContribution[] = [];
+		if (w) contributions.push(scoreWeather(w, j?.alertLevel));
+		if (eq) contributions.push(scoreEarthquake(eq));
+		if (a) contributions.push(scoreAir(a));
+
+		const totalScore = contributions.reduce((sum, c) => sum + c.score, 0);
+		const reasons = contributions.flatMap((c) => c.reasons);
+		const scoreItems = contributions.flatMap((c) => c.scoreItems);
+
+		return {
+			id: region.id,
+			name: region.name,
+			lat: region.lat,
+			lng: region.lng,
+			rawScore: totalScore,
+			riskScore: Math.min(MAX_SCORE, totalScore),
+			scoreItems,
+			riskTypes: contributions.flatMap((c) => c.riskTypes),
+			reasons: reasons.length > 0 ? reasons : ['現在危険情報なし'],
+			updatedAt: now,
+			details: {
+				weather: w ?? undefined,
+				earthquake: eq ?? undefined,
+				air: a ?? undefined,
+				jma: j ?? undefined
+			}
+		};
+	});
+}
+
+/** 単一地域のリスクを計算する（テスト・後方互換用）。 */
 export async function calculateRegionRisk(region: Region): Promise<RegionRisk> {
 	const [weather, earthquake, air, jma] = await Promise.allSettled([
 		fetchWeather(region.lat, region.lng),
