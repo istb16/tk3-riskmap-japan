@@ -10,6 +10,14 @@
 	let activeTab: 'ranking' | 'map' = $state('ranking');
 	let mapInitialized = false;
 
+	type TooltipArea = { name: string; warnings: string[] };
+	let jmaTooltip = $state<{ x: number; y: number; areas: TooltipArea[] } | null>(null);
+
+	function showJmaTooltip(e: MouseEvent, areas: TooltipArea[]) {
+		jmaTooltip = { x: e.clientX, y: e.clientY, areas };
+	}
+	function hideJmaTooltip() { jmaTooltip = null; }
+
 	const SEISMO_POINTS = '0,14 18,14 23,7 28,21 33,14 55,14 60,3 65,25 70,12 75,20 80,14 110,14 115,9 120,19 125,14 160,14 165,5 170,23 175,8 180,22 185,14 215,14 220,12 225,16 230,14 260,14 265,4 270,24 275,11 280,17 285,14 315,14 320,8 325,20 330,14 365,14 370,6 375,22 380,10 385,18 390,14 420,14 425,9 430,19 435,14 460,14 465,3 470,25 475,8 480,20 485,14 510,14 515,11 520,17 525,14 555,14 560,7 565,21 570,14 590,14 600,14';
 
 	let waveColor = $derived(scoreColor($rankedRegions[0]?.riskScore ?? 0));
@@ -227,17 +235,20 @@
 												{/each}
 											</span>
 										{/if}
+										{#if city.details.jma && city.details.jma.areas.length > 0}
+											<span
+												class="jma-alert-badge"
+												role="button"
+												tabindex="0"
+												aria-label="気象庁警報あり"
+												onmouseenter={(e) => showJmaTooltip(e, city.details.jma!.areas)}
+												onmouseleave={hideJmaTooltip}
+											>⚠</span>
+										{/if}
 									</div>
 									{#if city.reasons.length > 0}
 										<div class="rank-reasons">
 											{#each city.reasons as r}<span>{r}</span>{/each}
-										</div>
-									{/if}
-									{#if city.details.jma && city.details.jma.areas.length > 0}
-										<div class="rank-warnings">
-											{#each city.details.jma.areas as area}
-												<span>⚠ {area.name}: {area.warnings.join('・')}</span>
-											{/each}
 										</div>
 									{/if}
 								</div>
@@ -294,14 +305,24 @@
 					</div>
 				</div>
 
-				<div class="detail-section">
-					<h3 class="section-label">危険要因</h3>
-					<ul class="detail-reasons">
-						{#each $selectedRegion.reasons as r}
-							<li class="reason-row">{r}</li>
+				{#if $selectedRegion.details.jma && $selectedRegion.details.jma.areas.length > 0}
+					<div class="jma-alert-section">
+						<div class="jma-alert-header">
+							<span class="jma-alert-icon">⚠</span>
+							<span class="jma-alert-title">気象庁 警報・注意報</span>
+						</div>
+						{#each $selectedRegion.details.jma.areas as area}
+							<div class="jma-area-row">
+								<span class="jma-area-name">{area.name}</span>
+								<div class="jma-chips">
+									{#each area.warnings as w}
+										<span class="jma-chip" class:jma-chip-special={w.includes('特別警報')} class:jma-chip-warning={!w.includes('特別警報') && w.includes('警報')}>{w}</span>
+									{/each}
+								</div>
+							</div>
 						{/each}
-					</ul>
-				</div>
+					</div>
+				{/if}
 
 				{#if $selectedRegion.scoreItems.length > 0}
 					<div class="detail-section">
@@ -328,95 +349,74 @@
 							</div>
 						</div>
 					</div>
+				{:else}
+					<p class="no-risk-note">現在、危険情報はありません</p>
 				{/if}
 
-				{#if $selectedRegion.details.jma && $selectedRegion.details.jma.areas.length > 0}
-					<div class="detail-section">
-						<h3 class="section-label">気象庁 警報・注意報</h3>
-						<div class="jma-area-list">
-							{#each $selectedRegion.details.jma.areas as area}
-								<div class="jma-area-row">
-									<span class="jma-area-name">{area.name}</span>
-									<div class="jma-chips">
-										{#each area.warnings as w}
-											<span class="jma-chip" class:jma-chip-special={w.includes('特別警報')} class:jma-chip-warning={!w.includes('特別警報') && w.includes('警報')}>{w}</span>
-										{/each}
-									</div>
-								</div>
-							{/each}
-						</div>
+				<div class="detail-section">
+					<h3 class="section-label">観測データ</h3>
+					<div class="obs-grid">
+						{#if $selectedRegion.details.weather}
+							<div class="obs-cell">
+								<span class="obs-label">🌡 気温</span>
+								<span class="obs-val">{$selectedRegion.details.weather.temperature.toFixed(1)}<small>℃</small></span>
+							</div>
+							<div class="obs-cell">
+								<span class="obs-label">🌧 降水量</span>
+								<span class="obs-val">{$selectedRegion.details.weather.precipitation.toFixed(1)}<small>mm</small></span>
+							</div>
+							<div class="obs-cell">
+								<span class="obs-label">💨 風速</span>
+								<span class="obs-val">{$selectedRegion.details.weather.windSpeed.toFixed(0)}<small>km/h</small></span>
+							</div>
+						{/if}
+						{#if $selectedRegion.details.air?.pm25 !== null && $selectedRegion.details.air?.pm25 !== undefined}
+							<div class="obs-cell">
+								<span class="obs-label">🌫 PM2.5</span>
+								<span class="obs-val">{$selectedRegion.details.air.pm25.toFixed(1)}<small>μg/m³</small></span>
+							</div>
+						{/if}
 					</div>
-				{/if}
-
-				{#if $selectedRegion.details.weather}
-					<div class="detail-section">
-						<h3 class="section-label">気象データ</h3>
-						<div class="data-grid">
-							<div class="data-cell">
-								<span class="data-label">気温</span>
-								<span class="data-val">{$selectedRegion.details.weather.temperature.toFixed(1)}<small>℃</small></span>
-							</div>
-							<div class="data-cell">
-								<span class="data-label">降水量</span>
-								<span class="data-val">{$selectedRegion.details.weather.precipitation.toFixed(1)}<small>mm</small></span>
-							</div>
-							<div class="data-cell">
-								<span class="data-label">風速</span>
-								<span class="data-val">{$selectedRegion.details.weather.windSpeed.toFixed(0)}<small>km/h</small></span>
-							</div>
-							<div class="data-cell">
-								<span class="data-label">警報レベル</span>
-								<span class="data-val">{$selectedRegion.details.weather.alertLevel === 'none' ? 'なし' : $selectedRegion.details.weather.alertLevel}</span>
-							</div>
-						</div>
-					</div>
-				{/if}
-
-				{#if $selectedRegion.details.earthquake?.magnitude}
-					<div class="detail-section">
-						<h3 class="section-label">地震 <span class="section-note">過去7日</span></h3>
-						<div class="data-grid">
-							<div class="data-cell">
-								<span class="data-label">マグニチュード</span>
-								<span class="data-val">M{$selectedRegion.details.earthquake.magnitude.toFixed(1)}</span>
-							</div>
-							<div class="data-cell">
-								<span class="data-label">深さ（震源）</span>
-								<span class="data-val">{$selectedRegion.details.earthquake.depth?.toFixed(0) ?? '—'}<small>km</small></span>
+					{#if $selectedRegion.details.earthquake?.magnitude}
+						<div class="eq-card">
+							<div class="eq-row">
+								<span class="eq-label">🏔 地震</span>
+								<span class="eq-mag">M{$selectedRegion.details.earthquake.magnitude.toFixed(1)}</span>
+								<span class="eq-info">深さ {$selectedRegion.details.earthquake.depth?.toFixed(0) ?? '—'}km</span>
+								{#if $selectedRegion.details.earthquake.distanceKm !== null}
+									<span class="eq-info">震源 {Math.round($selectedRegion.details.earthquake.distanceKm ?? 0)}km</span>
+								{/if}
 							</div>
 							{#if $selectedRegion.details.earthquake.time}
-								<div class="data-cell">
-									<span class="data-label">発生日時</span>
-									<span class="data-val" style="font-size:14px">{formatDateTime($selectedRegion.details.earthquake.time)}</span>
-								</div>
-							{/if}
-							{#if $selectedRegion.details.earthquake.distanceKm !== null}
-								<div class="data-cell">
-									<span class="data-label">距離（震源）</span>
-									<span class="data-val">{Math.round($selectedRegion.details.earthquake.distanceKm ?? 0)}<small>km</small></span>
-								</div>
+								<span class="eq-time">{formatDateTime($selectedRegion.details.earthquake.time)}</span>
 							{/if}
 						</div>
-					</div>
-				{/if}
-
-				{#if $selectedRegion.details.air?.pm25 !== null && $selectedRegion.details.air?.pm25 !== undefined}
-					<div class="detail-section">
-						<h3 class="section-label">大気質</h3>
-						<div class="data-grid">
-							<div class="data-cell">
-								<span class="data-label">PM2.5</span>
-								<span class="data-val">{$selectedRegion.details.air.pm25.toFixed(1)}<small>μg/m³</small></span>
-							</div>
-						</div>
-					</div>
-				{/if}
+					{/if}
+				</div>
 
 				<div class="detail-footer">
 					<span>気象庁 / Open-Meteo / USGS</span>
 					<span>{formatTime($selectedRegion.updatedAt)}</span>
 				</div>
 			</div>
+		</div>
+	{/if}
+
+	{#if jmaTooltip}
+		<div
+			class="jma-fixed-tooltip"
+			style="left:{jmaTooltip.x + 12}px; top:{jmaTooltip.y + 12}px;"
+		>
+			{#each jmaTooltip.areas as area}
+				<div class="jma-tooltip-area">
+					<span class="jma-tooltip-name">{area.name}</span>
+					<div class="jma-tooltip-warnings">
+						{#each area.warnings as w}
+							<span class="jma-tooltip-chip">{w}</span>
+						{/each}
+					</div>
+				</div>
+			{/each}
 		</div>
 	{/if}
 </div>
@@ -995,60 +995,6 @@
 		gap: 6px;
 	}
 
-	.section-note {
-		font-weight: 400;
-		color: var(--text-dim);
-		text-transform: none;
-		letter-spacing: 0;
-		font-size: 11px;
-	}
-
-	.detail-reasons { list-style: none; display: flex; flex-direction: column; gap: 4px; }
-
-	.reason-row {
-		background: var(--bg);
-		border: 1px solid var(--border);
-		padding: 6px 10px;
-		border-radius: 4px;
-		font-size: 13px;
-	}
-
-	.data-grid {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 5px;
-	}
-
-	.data-cell {
-		background: var(--bg);
-		border: 1px solid var(--border);
-		padding: 8px 10px;
-		border-radius: 4px;
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-	}
-
-	.data-label {
-		font-family: var(--mono);
-		font-size: 10px;
-		color: var(--text-dim);
-		letter-spacing: 0.05em;
-	}
-
-	.data-val {
-		font-size: 16px;
-		font-weight: 700;
-		font-variant-numeric: tabular-nums;
-	}
-
-	.data-val small {
-		font-size: 11px;
-		font-weight: 400;
-		color: var(--text-2);
-		margin-left: 1px;
-	}
-
 	/* ─── Score breakdown ─── */
 	.breakdown-table {
 		border: 1px solid var(--border);
@@ -1136,47 +1082,95 @@
 		margin-top: 4px;
 	}
 
-	/* ─── JMA warnings in rank list ─── */
-	.rank-warnings {
-		display: flex;
-		flex-direction: column;
-		gap: 1px;
-	}
-
-	.rank-warnings span {
-		font-size: 11px;
+	/* ─── JMA alert badge in rank list ─── */
+	.jma-alert-badge {
+		font-size: 13px;
 		color: #B45309;
-		line-height: 1.4;
+		cursor: default;
+		line-height: 1;
+		user-select: none;
 	}
 
-	/* ─── JMA warnings in detail panel ─── */
-	.jma-area-list {
+	/* ─── JMA fixed tooltip ─── */
+	.jma-fixed-tooltip {
+		position: fixed;
+		background: #1e293b;
+		color: #e2e8f0;
+		border: 1px solid #334155;
+		border-radius: 8px;
+		padding: 10px 14px;
+		z-index: 9999;
+		max-width: 320px;
+		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+		pointer-events: none;
 		display: flex;
 		flex-direction: column;
+		gap: 10px;
+	}
+
+	.jma-tooltip-area { display: flex; flex-direction: column; gap: 5px; }
+
+	.jma-tooltip-name {
+		font-size: 11px;
+		font-weight: 700;
+		color: #94a3b8;
+		letter-spacing: 0.02em;
+	}
+
+	.jma-tooltip-warnings { display: flex; flex-wrap: wrap; gap: 3px; }
+
+	.jma-tooltip-chip {
+		font-size: 11px;
+		font-weight: 600;
+		background: #FDE68A;
+		color: #78350F;
+		border-radius: 3px;
+		padding: 2px 7px;
+	}
+
+	/* ─── JMA alert section in detail panel ─── */
+	.jma-alert-section {
+		background: #FFFBEB;
+		border: 1px solid #FDE68A;
+		border-radius: 8px;
+		padding: 12px;
+		margin-bottom: 14px;
+	}
+
+	.jma-alert-header {
+		display: flex;
+		align-items: center;
 		gap: 6px;
+		margin-bottom: 10px;
+	}
+
+	.jma-alert-icon { font-size: 14px; }
+
+	.jma-alert-title {
+		font-size: 11px;
+		font-weight: 700;
+		color: #92400E;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
 	}
 
 	.jma-area-row {
-		background: var(--bg);
-		border: 1px solid var(--border);
-		border-radius: 6px;
-		padding: 8px 10px;
 		display: flex;
 		flex-direction: column;
 		gap: 5px;
+		padding: 6px 0;
+		border-top: 1px solid rgba(253, 230, 138, 0.6);
 	}
+
+	.jma-area-row:first-of-type { border-top: none; padding-top: 0; }
 
 	.jma-area-name {
 		font-size: 12px;
 		font-weight: 700;
-		color: var(--text-2);
+		color: #78350F;
 	}
 
-	.jma-chips {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 4px;
-	}
+	.jma-chips { display: flex; flex-wrap: wrap; gap: 4px; }
 
 	.jma-chip {
 		font-size: 11px;
@@ -1198,6 +1192,94 @@
 		background: #FEF3C7;
 		color: #92400E;
 		border-color: #FDE68A;
+	}
+
+	/* ─── 観測データ grid ─── */
+	.obs-grid {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 5px;
+		margin-bottom: 5px;
+	}
+
+	.obs-cell {
+		background: var(--bg);
+		border: 1px solid var(--border);
+		padding: 9px 11px;
+		border-radius: 6px;
+		display: flex;
+		flex-direction: column;
+		gap: 3px;
+	}
+
+	.obs-label {
+		font-size: 11px;
+		color: var(--text-2);
+	}
+
+	.obs-val {
+		font-size: 20px;
+		font-weight: 700;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.obs-val small {
+		font-size: 11px;
+		font-weight: 400;
+		color: var(--text-2);
+		margin-left: 1px;
+	}
+
+	/* ─── 地震カード ─── */
+	.eq-card {
+		background: var(--bg);
+		border: 1px solid var(--border);
+		border-radius: 6px;
+		padding: 10px 12px;
+		display: flex;
+		flex-direction: column;
+		gap: 5px;
+	}
+
+	.eq-row {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		flex-wrap: wrap;
+	}
+
+	.eq-label {
+		font-size: 12px;
+		font-weight: 700;
+		color: var(--text-2);
+	}
+
+	.eq-mag {
+		font-family: var(--mono);
+		font-size: 22px;
+		font-weight: 700;
+		font-variant-numeric: tabular-nums;
+		color: var(--danger);
+		letter-spacing: -0.02em;
+	}
+
+	.eq-info {
+		font-size: 12px;
+		color: var(--text-2);
+	}
+
+	.eq-time {
+		font-family: var(--mono);
+		font-size: 11px;
+		color: var(--text-dim);
+	}
+
+	/* ─── no risk note ─── */
+	.no-risk-note {
+		font-size: 13px;
+		color: var(--text-dim);
+		text-align: center;
+		padding: 10px 0 14px;
 	}
 
 	/* ─── Tablet tweaks ─── */
