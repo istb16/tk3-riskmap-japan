@@ -218,7 +218,16 @@
 									{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
 								</div>
 								<div class="rank-info">
-									<div class="rank-name">{city.name}</div>
+									<div class="rank-name-row">
+										<span class="rank-name">{city.name}</span>
+										{#if city.riskTypes.length > 0}
+											<span class="rank-types">
+												{#each city.riskTypes as t}
+													<span class="type-badge">{riskTypeEmoji(t)}</span>
+												{/each}
+											</span>
+										{/if}
+									</div>
 									{#if city.reasons.length > 0}
 										<div class="rank-reasons">
 											{#each city.reasons as r}<span>{r}</span>{/each}
@@ -228,13 +237,6 @@
 										<div class="rank-warnings">
 											{#each city.details.jma.areas as area}
 												<span>⚠ {area.name}: {area.warnings.join('・')}</span>
-											{/each}
-										</div>
-									{/if}
-									{#if city.riskTypes.length > 0}
-										<div class="rank-types">
-											{#each city.riskTypes as t}
-												<span class="type-badge">{riskTypeEmoji(t)}</span>
 											{/each}
 										</div>
 									{/if}
@@ -286,7 +288,7 @@
 						<h2 class="detail-city">{$selectedRegion.name}</h2>
 						<div class="detail-types">
 							{#each $selectedRegion.riskTypes as t}
-								<span class="type-tag">{riskTypeLabel(t)}</span>
+								<span class="type-tag">{riskTypeEmoji(t)} {riskTypeLabel(t)}</span>
 							{/each}
 						</div>
 					</div>
@@ -785,6 +787,13 @@
 		gap: 3px;
 	}
 
+	.rank-name-row {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		flex-wrap: wrap;
+	}
+
 	.rank-name {
 		font-size: 18px;
 		font-weight: 800;
@@ -806,11 +815,11 @@
 
 	.rank-types {
 		display: flex;
-		gap: 3px;
-		margin-top: 3px;
+		gap: 2px;
+		align-items: center;
 	}
 
-	.type-badge { font-size: 15px; }
+	.type-badge { font-size: 14px; }
 
 	.rank-score-wrap {
 		flex-shrink: 0;
