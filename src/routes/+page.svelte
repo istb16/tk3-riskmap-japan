@@ -224,6 +224,13 @@
 											{#each city.reasons as r}<span>{r}</span>{/each}
 										</div>
 									{/if}
+									{#if city.details.jma && city.details.jma.areas.length > 0}
+										<div class="rank-warnings">
+											{#each city.details.jma.areas as area}
+												<span>⚠ {area.name}: {area.warnings.join('・')}</span>
+											{/each}
+										</div>
+									{/if}
 									{#if city.riskTypes.length > 0}
 										<div class="rank-types">
 											{#each city.riskTypes as t}
@@ -321,6 +328,24 @@
 					</div>
 				{/if}
 
+				{#if $selectedRegion.details.jma && $selectedRegion.details.jma.areas.length > 0}
+					<div class="detail-section">
+						<h3 class="section-label">気象庁 警報・注意報</h3>
+						<div class="jma-area-list">
+							{#each $selectedRegion.details.jma.areas as area}
+								<div class="jma-area-row">
+									<span class="jma-area-name">{area.name}</span>
+									<div class="jma-chips">
+										{#each area.warnings as w}
+											<span class="jma-chip" class:jma-chip-special={w.includes('特別警報')} class:jma-chip-warning={!w.includes('特別警報') && w.includes('警報')}>{w}</span>
+										{/each}
+									</div>
+								</div>
+							{/each}
+						</div>
+					</div>
+				{/if}
+
 				{#if $selectedRegion.details.weather}
 					<div class="detail-section">
 						<h3 class="section-label">気象データ</h3>
@@ -386,7 +411,7 @@
 				{/if}
 
 				<div class="detail-footer">
-					<span>Open-Meteo / USGS</span>
+					<span>気象庁 / Open-Meteo / USGS</span>
 					<span>{formatTime($selectedRegion.updatedAt)}</span>
 				</div>
 			</div>
@@ -1100,6 +1125,70 @@
 		padding-top: 10px;
 		border-top: 1px solid var(--border);
 		margin-top: 4px;
+	}
+
+	/* ─── JMA warnings in rank list ─── */
+	.rank-warnings {
+		display: flex;
+		flex-direction: column;
+		gap: 1px;
+	}
+
+	.rank-warnings span {
+		font-size: 11px;
+		color: #B45309;
+		line-height: 1.4;
+	}
+
+	/* ─── JMA warnings in detail panel ─── */
+	.jma-area-list {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.jma-area-row {
+		background: var(--bg);
+		border: 1px solid var(--border);
+		border-radius: 6px;
+		padding: 8px 10px;
+		display: flex;
+		flex-direction: column;
+		gap: 5px;
+	}
+
+	.jma-area-name {
+		font-size: 12px;
+		font-weight: 700;
+		color: var(--text-2);
+	}
+
+	.jma-chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
+	}
+
+	.jma-chip {
+		font-size: 11px;
+		font-weight: 600;
+		padding: 2px 8px;
+		border-radius: 3px;
+		background: #FEF3C7;
+		color: #92400E;
+		border: 1px solid #FDE68A;
+	}
+
+	.jma-chip-special {
+		background: #FEE2E2;
+		color: #991B1B;
+		border-color: #FECACA;
+	}
+
+	.jma-chip-warning {
+		background: #FEF3C7;
+		color: #92400E;
+		border-color: #FDE68A;
 	}
 
 	/* ─── Tablet tweaks ─── */

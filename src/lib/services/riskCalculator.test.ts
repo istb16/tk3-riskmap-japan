@@ -40,7 +40,7 @@ function makeAir(overrides: Partial<AirData> = {}): AirData {
 	return { pm25: null, aqi: null, ...overrides };
 }
 
-const TOKYO: Region = { id: 'tokyo', name: '東京', lat: 35.6895, lng: 139.6917, city: 'Tokyo' };
+const TOKYO: Region = { id: 'tokyo', name: '東京', lat: 35.6895, lng: 139.6917, city: 'Tokyo', jmaCode: '130000' };
 
 // ---- scoreWeather -----------------------------------------------------------
 

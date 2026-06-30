@@ -1,7 +1,8 @@
-import type { RegionRisk, WeatherData, EarthquakeData, AirData, RiskType, Region, ScoreItem } from '../types';
+import type { RegionRisk, WeatherData, EarthquakeData, AirData, JmaData, RiskType, Region, ScoreItem } from '../types';
 import { fetchWeather, getWeatherLabel } from '../api/weather';
 import { fetchEarthquake } from '../api/earthquake';
 import { fetchAirQuality } from '../api/air';
+import { fetchJmaWarnings } from '../api/jma';
 import { valueOrNull } from '../utils/settled';
 import {
 	WIND_TIERS,
@@ -83,14 +84,17 @@ function scoreMetric(
 	};
 }
 
-export function scoreWeather(w: WeatherData): ScoreContribution {
+export function scoreWeather(w: WeatherData, jmaAlertLevel?: JmaData['alertLevel']): ScoreContribution {
 	const riskTypes: RiskType[] = [];
 	const reasons: string[] = [];
 	const scoreItems: ScoreItem[] = [];
 
+	// JMAデータがある場合はJMAの警報レベルを優先、なければOpen-Meteoの推定値を使用
+	const effectiveAlertLevel = jmaAlertLevel ?? w.alertLevel;
+
 	// 気象警報レベル + 風速 + 降水量 → 「weather」リスク
 	let weatherScore = 0;
-	const alert = WEATHER_ALERT_RULES[w.alertLevel];
+	const alert = WEATHER_ALERT_RULES[effectiveAlertLevel];
 	if (alert.score > 0) {
 		weatherScore += alert.score;
 		const timeStr = w.observedAt ? `　${formatDateTime(w.observedAt)}観測` : '';
@@ -166,18 +170,21 @@ export function scoreAir(a: AirData): ScoreContribution {
 }
 
 export async function calculateRegionRisk(region: Region): Promise<RegionRisk> {
-	const [weather, earthquake, air] = await Promise.allSettled([
+	const [weather, earthquake, air, jma] = await Promise.allSettled([
 		fetchWeather(region.lat, region.lng),
 		fetchEarthquake(region.lat, region.lng),
-		fetchAirQuality(region.lat, region.lng)
+		fetchAirQuality(region.lat, region.lng),
+		fetchJmaWarnings(region.jmaCode)
 	]);
 
 	const w = valueOrNull(weather);
 	const eq = valueOrNull(earthquake);
 	const a = valueOrNull(air);
+	const j = valueOrNull(jma);
 
 	const contributions: ScoreContribution[] = [];
-	if (w) contributions.push(scoreWeather(w));
+	// JMAが成功した場合はJMA警報レベルを優先。失敗時はOpen-Meteoのalertレベルにフォールバック
+	if (w) contributions.push(scoreWeather(w, j?.alertLevel));
 	if (eq) contributions.push(scoreEarthquake(eq));
 	if (a) contributions.push(scoreAir(a));
 
@@ -199,7 +206,8 @@ export async function calculateRegionRisk(region: Region): Promise<RegionRisk> {
 		details: {
 			weather: w ?? undefined,
 			earthquake: eq ?? undefined,
-			air: a ?? undefined
+			air: a ?? undefined,
+			jma: j ?? undefined
 		}
 	};
 }

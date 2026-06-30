@@ -1,5 +1,15 @@
 export type RiskType = 'weather' | 'earthquake' | 'heat' | 'air';
 
+export interface JmaWarningArea {
+	name: string;
+	warnings: string[];
+}
+
+export interface JmaData {
+	areas: JmaWarningArea[];
+	alertLevel: 'none' | 'advisory' | 'warning' | 'special';
+}
+
 /** スコア内訳の1行分 */
 export interface ScoreItem {
 	label: string;
@@ -22,6 +32,7 @@ export interface RegionRisk {
 		weather?: WeatherData;
 		earthquake?: EarthquakeData;
 		air?: AirData;
+		jma?: JmaData;
 	};
 }
 
@@ -54,4 +65,5 @@ export interface Region {
 	lat: number;
 	lng: number;
 	city: string;
+	jmaCode: string;
 }
