@@ -131,6 +131,67 @@ describe('scoreWeather', () => {
 	});
 });
 
+// ---- scoreWeather: JMAアラートレベル上書き -----------------------------------
+
+describe('scoreWeather JMAアラートレベル上書き', () => {
+	it('jmaAlertLevel=none → Open-Meteoの special を維持', () => {
+		const result = scoreWeather(makeWeather({ alertLevel: 'special', weatherCode: 95 }), 'none');
+		expect(result.score).toBeGreaterThanOrEqual(50);
+		expect(result.riskTypes).toContain('weather');
+	});
+
+	it('jmaAlertLevel=warning, w.alertLevel=none → JMAを優先して score=30', () => {
+		const result = scoreWeather(makeWeather({ alertLevel: 'none' }), 'warning');
+		expect(result.score).toBe(30);
+		expect(result.riskTypes).toContain('weather');
+	});
+
+	it('jmaAlertLevel=special, w.alertLevel=advisory → JMAを優先して score≥50', () => {
+		const result = scoreWeather(makeWeather({ alertLevel: 'advisory' }), 'special');
+		expect(result.score).toBeGreaterThanOrEqual(50);
+	});
+
+	it('jmaAlertLevel=undefined → w.alertLevel をそのまま使う', () => {
+		const result = scoreWeather(makeWeather({ alertLevel: 'advisory' }), undefined);
+		expect(result.score).toBe(15);
+	});
+});
+
+// ---- scoreWeather: 降水量 ---------------------------------------------------
+
+describe('scoreWeather 降水量', () => {
+	it('precipitation=0 → score 0', () => {
+		expect(scoreWeather(makeWeather({ precipitation: 0 })).score).toBe(0);
+	});
+
+	it('precipitation=1(小雨) → +3点', () => {
+		const result = scoreWeather(makeWeather({ precipitation: 1 }));
+		expect(result.score).toBe(3);
+		expect(result.reasons).toContainEqual(expect.stringContaining('小雨'));
+	});
+
+	it('precipitation=5(やや強い雨) → +8点', () => {
+		expect(scoreWeather(makeWeather({ precipitation: 5 })).score).toBe(8);
+	});
+
+	it('precipitation=15(激しい雨) → +15点', () => {
+		const result = scoreWeather(makeWeather({ precipitation: 15 }));
+		expect(result.score).toBe(15);
+		expect(result.reasons).toContainEqual(expect.stringContaining('激しい雨'));
+	});
+
+	it('precipitation=50(猛烈な雨) → +35点', () => {
+		const result = scoreWeather(makeWeather({ precipitation: 50 }));
+		expect(result.score).toBe(35);
+		expect(result.reasons).toContainEqual(expect.stringContaining('猛烈な雨'));
+	});
+
+	it('precipitation + alertLevel → 両方が加算される', () => {
+		const result = scoreWeather(makeWeather({ precipitation: 15, alertLevel: 'warning', weatherCode: 61 }));
+		expect(result.score).toBe(30 + 15); // 大雨警報 + 激しい雨
+	});
+});
+
 // ---- scoreEarthquake --------------------------------------------------------
 
 describe('scoreEarthquake', () => {
@@ -165,6 +226,49 @@ describe('scoreEarthquake', () => {
 
 	it('M6.5 → +40点(M5以上はすべて同点)', () => {
 		expect(scoreEarthquake(makeEarthquake({ magnitude: 6.5 })).score).toBe(40);
+	});
+});
+
+// ---- scoreEarthquake: 時間・距離減衰 ------------------------------------------
+
+describe('scoreEarthquake 時間・距離減衰', () => {
+	it('M5, time=直後, dist=0km → 減衰なし score=40', () => {
+		const result = scoreEarthquake(makeEarthquake({ magnitude: 5.0, time: Date.now(), distanceKm: 0 }));
+		expect(result.score).toBe(40);
+		expect(result.scoreItems[0].note).toBeUndefined();
+	});
+
+	it('M5, time=4日前, dist=0km → 時間減衰 score=4', () => {
+		const time = Date.now() - 4 * 24 * 60 * 60 * 1000;
+		const result = scoreEarthquake(makeEarthquake({ magnitude: 5.0, time, distanceKm: 0 }));
+		// timeFactor=0.1（3日以上）: Math.max(1, Math.round(40 * 0.1)) = 4
+		expect(result.score).toBe(4);
+		expect(result.scoreItems[0].note).toMatch(/減衰/);
+	});
+
+	it('M5, time=直後, dist=333km → 距離減衰 score=8', () => {
+		const result = scoreEarthquake(makeEarthquake({ magnitude: 5.0, time: Date.now(), distanceKm: 333 }));
+		// distFactor=0.2: Math.round(40 * 0.2) = 8
+		expect(result.score).toBe(8);
+	});
+
+	it('M5, time=4日前, dist=333km → 複合減衰 score=1（最低保証）', () => {
+		const time = Date.now() - 4 * 24 * 60 * 60 * 1000;
+		const result = scoreEarthquake(makeEarthquake({ magnitude: 5.0, time, distanceKm: 333 }));
+		// 0.1 * 0.2 = 0.02 → Math.max(1, Math.round(40 * 0.02)) = 1
+		expect(result.score).toBe(1);
+	});
+
+	it('note が基礎点と減衰率を含む', () => {
+		const time = Date.now() - 4 * 24 * 60 * 60 * 1000;
+		const result = scoreEarthquake(makeEarthquake({ magnitude: 5.0, time, distanceKm: 100 }));
+		expect(result.scoreItems[0].note).toMatch(/基礎/);
+		expect(result.scoreItems[0].note).toMatch(/減衰/);
+	});
+
+	it('scoreItems[0].note は減衰なし時は undefined', () => {
+		const result = scoreEarthquake(makeEarthquake({ magnitude: 5.0 }));
+		expect(result.scoreItems[0].note).toBeUndefined();
 	});
 });
 
