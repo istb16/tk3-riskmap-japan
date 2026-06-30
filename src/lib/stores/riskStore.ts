@@ -20,10 +20,14 @@ export async function refreshAll() {
 	error.set(null);
 
 	try {
-		const data = await calculateAllRegionRisks(REGIONS);
+		const { regions: data, failedApis } = await calculateAllRegionRisks(REGIONS);
 		regions.set(data);
 		lastUpdated.set(Date.now());
-		error.set(null);
+		error.set(
+			failedApis.length > 0
+				? `一部データの取得に失敗しました（${failedApis.join('・')}）`
+				: null
+		);
 	} catch {
 		error.set('データ取得に失敗しました');
 	} finally {

@@ -14,7 +14,9 @@
 	let jmaTooltip = $state<{ x: number; y: number; areas: TooltipArea[] } | null>(null);
 
 	function showJmaTooltip(e: MouseEvent, areas: TooltipArea[]) {
-		jmaTooltip = { x: e.clientX, y: e.clientY, areas };
+		const x = Math.max(8, Math.min(e.clientX + 12, window.innerWidth - 334));
+		const y = Math.max(8, Math.min(e.clientY + 12, window.innerHeight - 120));
+		jmaTooltip = { x, y, areas };
 	}
 	function hideJmaTooltip() { jmaTooltip = null; }
 
@@ -405,7 +407,7 @@
 	{#if jmaTooltip}
 		<div
 			class="jma-fixed-tooltip"
-			style="left:{jmaTooltip.x + 12}px; top:{jmaTooltip.y + 12}px;"
+			style="left:{jmaTooltip.x}px; top:{jmaTooltip.y}px;"
 		>
 			{#each jmaTooltip.areas as area}
 				<div class="jma-tooltip-area">
@@ -1159,10 +1161,11 @@
 		flex-direction: column;
 		gap: 5px;
 		padding: 6px 0;
-		border-top: 1px solid rgba(253, 230, 138, 0.6);
 	}
 
-	.jma-area-row:first-of-type { border-top: none; padding-top: 0; }
+	.jma-area-row + .jma-area-row {
+		border-top: 1px solid rgba(253, 230, 138, 0.6);
+	}
 
 	.jma-area-name {
 		font-size: 12px;

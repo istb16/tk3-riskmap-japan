@@ -84,7 +84,7 @@ export async function fetchEarthquakesAll(
 		`&starttime=${startTime}` +
 		`&minlatitude=${JAPAN_BOUNDS.minLat}&maxlatitude=${JAPAN_BOUNDS.maxLat}` +
 		`&minlongitude=${JAPAN_BOUNDS.minLng}&maxlongitude=${JAPAN_BOUNDS.maxLng}` +
-		`&minmagnitude=${MIN_MAG}&orderby=magnitude&limit=500`;
+		`&minmagnitude=${MIN_MAG}&orderby=magnitude&limit=2000`;
 
 	const data = await fetchJson<USGSFeatureCollection>(url, 'EarthquakeBatch');
 	const features = data.features ?? [];

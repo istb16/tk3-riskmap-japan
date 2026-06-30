@@ -61,23 +61,26 @@ interface AreaJson {
 	class10s: Record<string, AreaInfo>;
 }
 
-// 一次細分区域コード → 名称のキャッシュ
-let areaNameCache: Record<string, string> | null = null;
+// 一次細分区域コード → 名称（Promiseをキャッシュして並列fetch競合・永続汚染を防ぐ）
+let areaNamePromise: Promise<Record<string, string>> | null = null;
 
-async function getAreaNames(): Promise<Record<string, string>> {
-	if (areaNameCache) return areaNameCache;
-	try {
-		const data = await fetchJson<AreaJson>(
+function getAreaNames(): Promise<Record<string, string>> {
+	if (!areaNamePromise) {
+		areaNamePromise = fetchJson<AreaJson>(
 			'https://www.jma.go.jp/bosai/common/const/area.json',
 			'JMAArea'
-		);
-		areaNameCache = Object.fromEntries(
-			Object.entries(data.class10s).map(([code, info]) => [code, info.name])
-		);
-	} catch {
-		areaNameCache = {};
+		)
+			.then((data) =>
+				Object.fromEntries(
+					Object.entries(data.class10s).map(([code, info]) => [code, info.name])
+				)
+			)
+			.catch(() => {
+				areaNamePromise = null;
+				return {} as Record<string, string>;
+			});
 	}
-	return areaNameCache;
+	return areaNamePromise;
 }
 
 function alertLevelFromCodes(activeCodes: string[]): JmaData['alertLevel'] {

@@ -89,8 +89,8 @@ export function scoreWeather(w: WeatherData, jmaAlertLevel?: JmaData['alertLevel
 	const reasons: string[] = [];
 	const scoreItems: ScoreItem[] = [];
 
-	// JMAデータがある場合はJMAの警報レベルを優先、なければOpen-Meteoの推定値を使用
-	const effectiveAlertLevel = jmaAlertLevel ?? w.alertLevel;
+	// JMAが発令済み（'none'以外）の場合のみ優先。未発令('none')はOpen-Meteoの推定値を維持する
+	const effectiveAlertLevel = (jmaAlertLevel && jmaAlertLevel !== 'none') ? jmaAlertLevel : w.alertLevel;
 
 	// 気象警報レベル + 風速 + 降水量 → 「weather」リスク
 	let weatherScore = 0;
@@ -100,7 +100,7 @@ export function scoreWeather(w: WeatherData, jmaAlertLevel?: JmaData['alertLevel
 		const timeStr = w.observedAt ? `　${formatDateTime(w.observedAt)}観測` : '';
 		const alertLabel = alert.reason(getWeatherLabel(w.weatherCode));
 		reasons.push(alertLabel + timeStr);
-		scoreItems.push({ label: alertLabel, points: alert.score });
+		scoreItems.push({ label: alertLabel + timeStr, points: alert.score });
 	}
 	const wind = matchTier(w.windSpeed, WIND_TIERS);
 	if (wind) {
@@ -170,6 +170,11 @@ export function scoreAir(a: AirData): ScoreContribution {
 	return scoreMetric(a.pm25, PM25_TIERS, 'air');
 }
 
+export interface AllRegionRisksResult {
+	regions: RegionRisk[];
+	failedApis: string[];
+}
+
 /**
  * 全地域のリスクデータをバッチAPIで効率的に取得して計算する。
  * 個別に47回リクエストを送る代わりに、APIごとに1〜数リクエストにまとめる。
@@ -177,7 +182,7 @@ export function scoreAir(a: AirData): ScoreContribution {
  * - USGS 地震: 日本全体1リクエスト → 地域ごとに振り分け
  * - JMA 警報: 同時実行数5で順次取得
  */
-export async function calculateAllRegionRisks(regions: Region[]): Promise<RegionRisk[]> {
+export async function calculateAllRegionRisks(regions: Region[]): Promise<AllRegionRisksResult> {
 	const [weatherSettled, earthquakeSettled, airSettled, jmaSettled] = await Promise.allSettled([
 		fetchWeatherBatch(regions),
 		fetchEarthquakesAll(regions),
@@ -194,9 +199,15 @@ export async function calculateAllRegionRisks(regions: Region[]): Promise<Region
 	const jmas: (JmaData | null)[] =
 		valueOrNull(jmaSettled) ?? new Array<JmaData | null>(regions.length).fill(null);
 
+	const failedApis: string[] = [];
+	if (weatherSettled.status === 'rejected') failedApis.push('気象');
+	if (earthquakeSettled.status === 'rejected') failedApis.push('地震');
+	if (airSettled.status === 'rejected') failedApis.push('大気質');
+	if (jmaSettled.status === 'rejected') failedApis.push('JMA警報');
+
 	const now = Date.now();
 
-	return regions.map((region, i) => {
+	const regionList = regions.map((region, i) => {
 		const w = weathers[i] ?? null;
 		const eq = earthquakes[i] ?? null;
 		const a = airs[i] ?? null;
@@ -230,6 +241,8 @@ export async function calculateAllRegionRisks(regions: Region[]): Promise<Region
 			}
 		};
 	});
+
+	return { regions: regionList, failedApis };
 }
 
 /** 単一地域のリスクを計算する（テスト・後方互換用）。 */
