@@ -27,7 +27,7 @@ const WARNING_CODE_TO_NAME: Record<string, string> = {
 	'24': '波浪注意報',
 	'25': '高潮注意報',
 	'32': '暴風警報',
-	'33': '暴風雪警報'
+	'33': '暴風雪警報',
 };
 
 // 特別警報コード（最高レベル）
@@ -71,9 +71,7 @@ function getAreaNames(): Promise<Record<string, string>> {
 			'JMAArea'
 		)
 			.then((data) =>
-				Object.fromEntries(
-					Object.entries(data.class10s).map(([code, info]) => [code, info.name])
-				)
+				Object.fromEntries(Object.entries(data.class10s).map(([code, info]) => [code, info.name]))
 			)
 			.catch(() => {
 				areaNamePromise = null;
@@ -96,7 +94,7 @@ export async function fetchJmaWarnings(prefCode: string): Promise<JmaData> {
 			`https://www.jma.go.jp/bosai/warning/data/warning/${prefCode}.json`,
 			'JMA'
 		),
-		getAreaNames()
+		getAreaNames(),
 	]);
 
 	// 一次細分区域（areaTypes[0]）を使用
@@ -112,7 +110,7 @@ export async function fetchJmaWarnings(prefCode: string): Promise<JmaData> {
 			allActiveCodes.push(...codes);
 			activeAreas.push({
 				name: areaNames[area.code] ?? area.code,
-				warnings: codes.map((c) => WARNING_CODE_TO_NAME[c] ?? `警報(${c})`)
+				warnings: codes.map((c) => WARNING_CODE_TO_NAME[c] ?? `警報(${c})`),
 			});
 		}
 	}

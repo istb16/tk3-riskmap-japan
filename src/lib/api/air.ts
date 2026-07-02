@@ -11,7 +11,7 @@ interface OpenMeteoAirResponse {
 function parseAirResponse(data: OpenMeteoAirResponse): AirData {
 	return {
 		pm25: data.current?.pm2_5 ?? null,
-		aqi: data.current?.european_aqi ?? null
+		aqi: data.current?.european_aqi ?? null,
 	};
 }
 
@@ -37,8 +37,11 @@ export async function fetchAirQualityBatch(
 		const data = await fetchJson<OpenMeteoAirResponse | OpenMeteoAirResponse[]>(url, 'AirBatch');
 		const arr = Array.isArray(data) ? data : [data];
 		return arr.map((d) => {
-			try { return parseAirResponse(d); }
-			catch { return null; }
+			try {
+				return parseAirResponse(d);
+			} catch {
+				return null;
+			}
 		});
 	} catch {
 		return regions.map(() => null);

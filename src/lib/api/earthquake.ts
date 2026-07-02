@@ -53,7 +53,7 @@ function featureToEarthquakeData(
 		place: quake.properties.place,
 		time: quake.properties.time,
 		depth: quake.geometry.coordinates[2],
-		distanceKm: haversineKm(regionLat, regionLng, epicLat, epicLng)
+		distanceKm: haversineKm(regionLat, regionLng, epicLat, epicLng),
 	};
 }
 

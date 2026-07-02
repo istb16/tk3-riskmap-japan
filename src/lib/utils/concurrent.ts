@@ -23,8 +23,6 @@ export async function runWithConcurrency<T, R>(
 		}
 	}
 
-	await Promise.all(
-		Array.from({ length: Math.min(maxConcurrent, items.length) }, () => worker())
-	);
+	await Promise.all(Array.from({ length: Math.min(maxConcurrent, items.length) }, () => worker()));
 	return results;
 }

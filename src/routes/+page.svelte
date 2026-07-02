@@ -1,6 +1,14 @@
-<script lang="ts">
+﻿<script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { rankedRegions, loading, lastUpdated, error, selectedRegion, startAutoRefresh, stopAutoRefresh } from '$lib/stores/riskStore';
+	import {
+		rankedRegions,
+		loading,
+		lastUpdated,
+		error,
+		selectedRegion,
+		startAutoRefresh,
+		stopAutoRefresh,
+	} from '$lib/stores/riskStore';
 	import { formatDateTime } from '$lib/services/riskCalculator';
 	import type { JmaWarningArea } from '$lib/types';
 	import type { Map as LeafletMap, Marker } from 'leaflet';
@@ -18,9 +26,12 @@
 		const y = Math.max(8, Math.min(e.clientY + 12, window.innerHeight - 120));
 		jmaTooltip = { x, y, areas };
 	}
-	function hideJmaTooltip() { jmaTooltip = null; }
+	function hideJmaTooltip() {
+		jmaTooltip = null;
+	}
 
-	const SEISMO_POINTS = '0,14 18,14 23,7 28,21 33,14 55,14 60,3 65,25 70,12 75,20 80,14 110,14 115,9 120,19 125,14 160,14 165,5 170,23 175,8 180,22 185,14 215,14 220,12 225,16 230,14 260,14 265,4 270,24 275,11 280,17 285,14 315,14 320,8 325,20 330,14 365,14 370,6 375,22 380,10 385,18 390,14 420,14 425,9 430,19 435,14 460,14 465,3 470,25 475,8 480,20 485,14 510,14 515,11 520,17 525,14 555,14 560,7 565,21 570,14 590,14 600,14';
+	const SEISMO_POINTS =
+		'0,14 18,14 23,7 28,21 33,14 55,14 60,3 65,25 70,12 75,20 80,14 110,14 115,9 120,19 125,14 160,14 165,5 170,23 175,8 180,22 185,14 215,14 220,12 225,16 230,14 260,14 265,4 270,24 275,11 280,17 285,14 315,14 320,8 325,20 330,14 365,14 370,6 375,22 380,10 385,18 390,14 420,14 425,9 430,19 435,14 460,14 465,3 470,25 475,8 480,20 485,14 510,14 515,11 520,17 525,14 555,14 560,7 565,21 570,14 590,14 600,14';
 
 	let waveColor = $derived(scoreColor($rankedRegions[0]?.riskScore ?? 0));
 
@@ -31,10 +42,10 @@
 	}
 
 	const RISK_TYPE: Record<string, { emoji: string; label: string }> = {
-		weather:    { emoji: '🌧️', label: '気象' },
+		weather: { emoji: '🌧️', label: '気象' },
 		earthquake: { emoji: '🏔️', label: '地震' },
-		heat:       { emoji: '🔥', label: '熱波' },
-		air:        { emoji: '💨', label: '大気' }
+		heat: { emoji: '🔥', label: '熱波' },
+		air: { emoji: '💨', label: '大気' },
 	};
 	const riskTypeEmoji = (t: string) => RISK_TYPE[t]?.emoji ?? '⚠️';
 	const riskTypeLabel = (t: string) => RISK_TYPE[t]?.label ?? '警報';
@@ -54,13 +65,16 @@
 		const L = (await import('leaflet')).default;
 		await import('leaflet/dist/leaflet.css');
 
-		if (map) { map.remove(); map = null; }
+		if (map) {
+			map.remove();
+			map = null;
+		}
 
 		map = L.map(mapEl, { zoomControl: true, scrollWheelZoom: true }).setView([36.5, 136.0], 5);
 
 		L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 			attribution: '© OpenStreetMap contributors',
-			maxZoom: 18
+			maxZoom: 18,
 		}).addTo(map);
 
 		updateMarkers(L);
@@ -87,7 +101,7 @@
 					cursor:pointer;
 				">${region.riskScore}</div>`,
 				iconSize: [40, 40],
-				iconAnchor: [20, 20]
+				iconAnchor: [20, 20],
 			});
 
 			const marker = L.marker([region.lat, region.lng], { icon })
@@ -127,14 +141,19 @@
 	function shareTwitter() {
 		const text = `今、日本で最も危険な都道府県は「${$rankedRegions[0]?.name ?? ''}」！スコア${$rankedRegions[0]?.riskScore ?? 0}（${$rankedRegions[0]?.reasons[0] ?? ''}）\n#日本危険マップ #リアルタイム防災`;
 		const url = encodeURIComponent(location.href);
-		window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${url}`, '_blank');
+		window.open(
+			`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${url}`,
+			'_blank'
+		);
 	}
 
 	onMount(() => {
 		startAutoRefresh(5 * 60 * 1000);
 		const mq = window.matchMedia('(min-width: 1024px)');
 		if (mq.matches) ensureMapInit();
-		mq.addEventListener('change', (e) => { if (e.matches) ensureMapInit(); });
+		mq.addEventListener('change', (e) => {
+			if (e.matches) ensureMapInit();
+		});
 	});
 
 	onDestroy(() => {
@@ -179,10 +198,14 @@
 
 	<!-- Tab Nav (hidden on desktop, both panels always rendered) -->
 	<nav class="tab-nav">
-		<button class="tab-btn" class:active={activeTab === 'ranking'} onclick={() => activeTab = 'ranking'}>
+		<button
+			class="tab-btn"
+			class:active={activeTab === 'ranking'}
+			onclick={() => (activeTab = 'ranking')}
+		>
 			ランキング
 		</button>
-		<button class="tab-btn" class:active={activeTab === 'map'} onclick={() => activeTab = 'map'}>
+		<button class="tab-btn" class:active={activeTab === 'map'} onclick={() => (activeTab = 'map')}>
 			地図
 		</button>
 	</nav>
@@ -194,7 +217,6 @@
 
 	<!-- Main Content Area -->
 	<div class="content-area">
-
 		<!-- Ranking Panel -->
 		<section class="ranking-panel" class:tab-active={activeTab === 'ranking'}>
 			{#if $loading && $rankedRegions.length === 0}
@@ -214,14 +236,14 @@
 					<div class="top-score">{top.riskScore}<span class="score-unit">/100</span></div>
 					{#if top.reasons.length > 0}
 						<div class="top-reasons">
-							{#each top.reasons as r}<span class="reason-chip">{r}</span>{/each}
+							{#each top.reasons as r (r)}<span class="reason-chip">{r}</span>{/each}
 						</div>
 					{/if}
 				</div>
 
 				<!-- Rank List -->
 				<ol class="rank-list">
-					{#each $rankedRegions as city, i}
+					{#each $rankedRegions as city, i (city.name)}
 						<li>
 							<button class="rank-item" onclick={() => selectedRegion.set(city)}>
 								<div class="rank-num" style="color:{scoreColor(city.riskScore)}">
@@ -232,7 +254,7 @@
 										<span class="rank-name">{city.name}</span>
 										{#if city.riskTypes.length > 0}
 											<span class="rank-types">
-												{#each city.riskTypes as t}
+												{#each city.riskTypes as t (t)}
 													<span class="type-badge">{riskTypeEmoji(t)}</span>
 												{/each}
 											</span>
@@ -244,21 +266,28 @@
 												tabindex="0"
 												aria-label="気象庁警報あり"
 												onmouseenter={(e) => showJmaTooltip(e, city.details.jma!.areas)}
-												onmouseleave={hideJmaTooltip}
-											>⚠</span>
+												onmouseleave={hideJmaTooltip}>⚠</span
+											>
 										{/if}
 									</div>
 									{#if city.reasons.length > 0}
 										<div class="rank-reasons">
-											{#each city.reasons as r}<span>{r}</span>{/each}
+											{#each city.reasons as r (r)}<span>{r}</span>{/each}
 										</div>
 									{/if}
 								</div>
 								<div class="rank-score-wrap">
-									<div class="rank-score" style="color:{scoreColor(city.riskScore)}">{city.riskScore}</div>
-									<div class="rank-label" style="color:{scoreColor(city.riskScore)}">{scoreLabel(city.riskScore)}</div>
+									<div class="rank-score" style="color:{scoreColor(city.riskScore)}">
+										{city.riskScore}
+									</div>
+									<div class="rank-label" style="color:{scoreColor(city.riskScore)}">
+										{scoreLabel(city.riskScore)}
+									</div>
 									<div class="score-bar-bg">
-										<div class="score-bar-fill" style="width:{city.riskScore}%;background:{scoreColor(city.riskScore)}"></div>
+										<div
+											class="score-bar-fill"
+											style="width:{city.riskScore}%;background:{scoreColor(city.riskScore)}"
+										></div>
 									</div>
 								</div>
 							</button>
@@ -272,12 +301,17 @@
 		<div class="map-panel" class:tab-active={activeTab === 'map'}>
 			<div bind:this={mapEl} class="leaflet-map"></div>
 			<div class="map-legend">
-				<span class="legend-item"><span class="legend-dot" style="background:#16A34A"></span>安全 0–30</span>
-				<span class="legend-item"><span class="legend-dot" style="background:#B45309"></span>注意 31–60</span>
-				<span class="legend-item"><span class="legend-dot" style="background:#DC2626"></span>危険 61–100</span>
+				<span class="legend-item"
+					><span class="legend-dot" style="background:#16A34A"></span>安全 0–30</span
+				>
+				<span class="legend-item"
+					><span class="legend-dot" style="background:#B45309"></span>注意 31–60</span
+				>
+				<span class="legend-item"
+					><span class="legend-dot" style="background:#DC2626"></span>危険 61–100</span
+				>
 			</div>
 		</div>
-
 	</div>
 
 	<!-- Detail Panel (fixed overlay) -->
@@ -290,17 +324,23 @@
 				aria-label="閉じる"
 			></button>
 			<div class="detail-panel" role="document">
-				<button class="close-btn" onclick={() => selectedRegion.set(null)} aria-label="閉じる">✕</button>
+				<button class="close-btn" onclick={() => selectedRegion.set(null)} aria-label="閉じる"
+					>✕</button
+				>
 
 				<div class="detail-header">
 					<div class="detail-score-block">
-						<div class="detail-score" style="color:{scoreColor($selectedRegion.riskScore)}">{$selectedRegion.riskScore}</div>
-						<div class="detail-score-label" style="color:{scoreColor($selectedRegion.riskScore)}">{scoreLabel($selectedRegion.riskScore)}</div>
+						<div class="detail-score" style="color:{scoreColor($selectedRegion.riskScore)}">
+							{$selectedRegion.riskScore}
+						</div>
+						<div class="detail-score-label" style="color:{scoreColor($selectedRegion.riskScore)}">
+							{scoreLabel($selectedRegion.riskScore)}
+						</div>
 					</div>
 					<div class="detail-title-block">
 						<h2 class="detail-city">{$selectedRegion.name}</h2>
 						<div class="detail-types">
-							{#each $selectedRegion.riskTypes as t}
+							{#each $selectedRegion.riskTypes as t (t)}
 								<span class="type-tag">{riskTypeEmoji(t)} {riskTypeLabel(t)}</span>
 							{/each}
 						</div>
@@ -313,12 +353,17 @@
 							<span class="jma-alert-icon">⚠</span>
 							<span class="jma-alert-title">気象庁 警報・注意報</span>
 						</div>
-						{#each $selectedRegion.details.jma.areas as area}
+						{#each $selectedRegion.details.jma.areas as area (area.name)}
 							<div class="jma-area-row">
 								<span class="jma-area-name">{area.name}</span>
 								<div class="jma-chips">
-									{#each area.warnings as w}
-										<span class="jma-chip" class:jma-chip-special={w.includes('特別警報')} class:jma-chip-warning={!w.includes('特別警報') && w.includes('警報')}>{w}</span>
+									{#each area.warnings as w (w)}
+										<span
+											class="jma-chip"
+											class:jma-chip-special={w.includes('特別警報')}
+											class:jma-chip-warning={!w.includes('特別警報') && w.includes('警報')}
+											>{w}</span
+										>
 									{/each}
 								</div>
 							</div>
@@ -330,7 +375,7 @@
 					<div class="detail-section">
 						<h3 class="section-label">スコア内訳</h3>
 						<div class="breakdown-table">
-							{#each $selectedRegion.scoreItems as item}
+							{#each $selectedRegion.scoreItems as item (item.label)}
 								<div class="breakdown-row">
 									<span class="breakdown-label">{item.label}</span>
 									<span class="breakdown-pts">+{item.points}</span>
@@ -341,9 +386,14 @@
 							{/each}
 							<div class="breakdown-total">
 								<span class="breakdown-total-label">合計</span>
-								<span class="breakdown-total-val" style="color:{scoreColor($selectedRegion.riskScore)}">
+								<span
+									class="breakdown-total-val"
+									style="color:{scoreColor($selectedRegion.riskScore)}"
+								>
 									{#if $selectedRegion.rawScore > $selectedRegion.riskScore}
-										{$selectedRegion.rawScore} → {$selectedRegion.riskScore}<small>（上限100）</small>
+										{$selectedRegion.rawScore} → {$selectedRegion.riskScore}<small
+											>（上限100）</small
+										>
 									{:else}
 										{$selectedRegion.riskScore}
 									{/if}
@@ -361,21 +411,29 @@
 						{#if $selectedRegion.details.weather}
 							<div class="obs-cell">
 								<span class="obs-label">🌡 気温</span>
-								<span class="obs-val">{$selectedRegion.details.weather.temperature.toFixed(1)}<small>℃</small></span>
+								<span class="obs-val"
+									>{$selectedRegion.details.weather.temperature.toFixed(1)}<small>℃</small></span
+								>
 							</div>
 							<div class="obs-cell">
 								<span class="obs-label">🌧 降水量</span>
-								<span class="obs-val">{$selectedRegion.details.weather.precipitation.toFixed(1)}<small>mm</small></span>
+								<span class="obs-val"
+									>{$selectedRegion.details.weather.precipitation.toFixed(1)}<small>mm</small></span
+								>
 							</div>
 							<div class="obs-cell">
 								<span class="obs-label">💨 風速</span>
-								<span class="obs-val">{$selectedRegion.details.weather.windSpeed.toFixed(0)}<small>km/h</small></span>
+								<span class="obs-val"
+									>{$selectedRegion.details.weather.windSpeed.toFixed(0)}<small>km/h</small></span
+								>
 							</div>
 						{/if}
 						{#if $selectedRegion.details.air?.pm25 !== null && $selectedRegion.details.air?.pm25 !== undefined}
 							<div class="obs-cell">
 								<span class="obs-label">🌫 PM2.5</span>
-								<span class="obs-val">{$selectedRegion.details.air.pm25.toFixed(1)}<small>μg/m³</small></span>
+								<span class="obs-val"
+									>{$selectedRegion.details.air.pm25.toFixed(1)}<small>μg/m³</small></span
+								>
 							</div>
 						{/if}
 					</div>
@@ -383,14 +441,22 @@
 						<div class="eq-card">
 							<div class="eq-row">
 								<span class="eq-label">🏔 地震</span>
-								<span class="eq-mag">M{$selectedRegion.details.earthquake.magnitude.toFixed(1)}</span>
-								<span class="eq-info">深さ {$selectedRegion.details.earthquake.depth?.toFixed(0) ?? '—'}km</span>
+								<span class="eq-mag"
+									>M{$selectedRegion.details.earthquake.magnitude.toFixed(1)}</span
+								>
+								<span class="eq-info"
+									>深さ {$selectedRegion.details.earthquake.depth?.toFixed(0) ?? '—'}km</span
+								>
 								{#if $selectedRegion.details.earthquake.distanceKm !== null}
-									<span class="eq-info">震源 {Math.round($selectedRegion.details.earthquake.distanceKm ?? 0)}km</span>
+									<span class="eq-info"
+										>震源 {Math.round($selectedRegion.details.earthquake.distanceKm ?? 0)}km</span
+									>
 								{/if}
 							</div>
 							{#if $selectedRegion.details.earthquake.time}
-								<span class="eq-time">{formatDateTime($selectedRegion.details.earthquake.time)}</span>
+								<span class="eq-time"
+									>{formatDateTime($selectedRegion.details.earthquake.time)}</span
+								>
 							{/if}
 						</div>
 					{/if}
@@ -405,15 +471,12 @@
 	{/if}
 
 	{#if jmaTooltip}
-		<div
-			class="jma-fixed-tooltip"
-			style="left:{jmaTooltip.x}px; top:{jmaTooltip.y}px;"
-		>
-			{#each jmaTooltip.areas as area}
+		<div class="jma-fixed-tooltip" style="left:{jmaTooltip.x}px; top:{jmaTooltip.y}px;">
+			{#each jmaTooltip.areas as area (area.name)}
 				<div class="jma-tooltip-area">
 					<span class="jma-tooltip-name">{area.name}</span>
 					<div class="jma-tooltip-warnings">
-						{#each area.warnings as w}
+						{#each area.warnings as w (w)}
 							<span class="jma-tooltip-chip">{w}</span>
 						{/each}
 					</div>
@@ -426,22 +489,26 @@
 <style>
 	/* ─── Design tokens ─── */
 	:root {
-		--bg:         #F0F4F8;
-		--surface:    #FFFFFF;
-		--surface-hi: #E5EDF6;
-		--border:     #C8D8E8;
-		--border-hi:  #A0BAD0;
-		--safe:       #16A34A;
-		--caution:    #B45309;
-		--danger:     #DC2626;
-		--text:       #0A1828;
-		--text-2:     #445E78;
-		--text-dim:   #8AAABE;
-		--live:       #1666CC;
-		--mono:       'Courier New', 'SF Mono', 'Consolas', monospace;
+		--bg: #f0f4f8;
+		--surface: #ffffff;
+		--surface-hi: #e5edf6;
+		--border: #c8d8e8;
+		--border-hi: #a0bad0;
+		--safe: #16a34a;
+		--caution: #b45309;
+		--danger: #dc2626;
+		--text: #0a1828;
+		--text-2: #445e78;
+		--text-dim: #8aaabe;
+		--live: #1666cc;
+		--mono: 'Courier New', 'SF Mono', 'Consolas', monospace;
 	}
 
-	:global(*) { box-sizing: border-box; margin: 0; padding: 0; }
+	:global(*) {
+		box-sizing: border-box;
+		margin: 0;
+		padding: 0;
+	}
 
 	:global(body) {
 		font-family: -apple-system, 'Hiragino Sans', 'Noto Sans JP', 'Yu Gothic UI', sans-serif;
@@ -495,8 +562,14 @@
 	}
 
 	@keyframes blink {
-		0%, 49% { opacity: 1; }
-		50%, 100% { opacity: 0.3; }
+		0%,
+		49% {
+			opacity: 1;
+		}
+		50%,
+		100% {
+			opacity: 0.3;
+		}
 	}
 
 	h1 {
@@ -522,7 +595,9 @@
 		color: var(--text-2);
 	}
 
-	.blink { animation: blink 1s steps(1) infinite; }
+	.blink {
+		animation: blink 1s steps(1) infinite;
+	}
 
 	.share-btn {
 		background: transparent;
@@ -533,11 +608,19 @@
 		font-size: 12px;
 		font-weight: 600;
 		cursor: pointer;
-		transition: border-color 0.15s, color 0.15s;
+		transition:
+			border-color 0.15s,
+			color 0.15s;
 		white-space: nowrap;
 	}
-	.share-btn:hover { border-color: var(--text-2); color: var(--text); }
-	.share-btn:focus-visible { outline: 2px solid var(--live); outline-offset: 2px; }
+	.share-btn:hover {
+		border-color: var(--text-2);
+		color: var(--text);
+	}
+	.share-btn:focus-visible {
+		outline: 2px solid var(--live);
+		outline-offset: 2px;
+	}
 
 	/* ─── Seismograph strip ─── */
 	.seismo-wrap {
@@ -555,12 +638,18 @@
 	}
 
 	@media (prefers-reduced-motion: reduce) {
-		.seismo-inner { animation: none; }
+		.seismo-inner {
+			animation: none;
+		}
 	}
 
 	@keyframes seismo-scroll {
-		from { transform: translateX(0); }
-		to   { transform: translateX(-50%); }
+		from {
+			transform: translateX(0);
+		}
+		to {
+			transform: translateX(-50%);
+		}
 	}
 
 	.seismo-svg {
@@ -594,20 +683,28 @@
 		font-weight: 600;
 		cursor: pointer;
 		border-bottom: 2px solid transparent;
-		transition: color 0.15s, border-color 0.15s;
+		transition:
+			color 0.15s,
+			border-color 0.15s;
 		letter-spacing: 0.02em;
 	}
-	.tab-btn.active { color: var(--text); border-bottom-color: var(--live); }
-	.tab-btn:focus-visible { outline: 2px solid var(--live); outline-offset: -2px; }
+	.tab-btn.active {
+		color: var(--text);
+		border-bottom-color: var(--live);
+	}
+	.tab-btn:focus-visible {
+		outline: 2px solid var(--live);
+		outline-offset: -2px;
+	}
 
 	/* ─── Error ─── */
 	.error-banner {
-		background: #FEE2E2;
-		color: #991B1B;
+		background: #fee2e2;
+		color: #991b1b;
 		padding: 8px 16px;
 		font-size: 13px;
 		text-align: center;
-		border-bottom: 1px solid #FECACA;
+		border-bottom: 1px solid #fecaca;
 	}
 
 	/* ─── Content area: mobile = single column, desktop = side by side ─── */
@@ -624,7 +721,9 @@
 		flex-direction: column;
 		overflow-y: auto;
 	}
-	.ranking-panel.tab-active { display: flex; }
+	.ranking-panel.tab-active {
+		display: flex;
+	}
 
 	/* ─── Map panel ─── */
 	.map-panel {
@@ -632,11 +731,16 @@
 		flex-direction: column;
 		position: relative;
 	}
-	.map-panel.tab-active { display: flex; flex: 1; }
+	.map-panel.tab-active {
+		display: flex;
+		flex: 1;
+	}
 
 	/* ─── Desktop layout ─── */
 	@media (min-width: 1024px) {
-		.tab-nav { display: none; }
+		.tab-nav {
+			display: none;
+		}
 
 		.content-area {
 			flex-direction: row;
@@ -683,9 +787,16 @@
 		animation: spin 0.8s linear infinite;
 	}
 
-	@keyframes spin { to { transform: rotate(360deg); } }
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
+		}
+	}
 
-	.loading-sub { font-size: 12px; color: var(--text-dim); }
+	.loading-sub {
+		font-size: 12px;
+		color: var(--text-dim);
+	}
 
 	/* ─── Top Alert Banner ─── */
 	.top-alert {
@@ -709,7 +820,7 @@
 		font-weight: 900;
 		letter-spacing: -0.03em;
 		line-height: 1.1;
-		font-feature-settings: "palt" 1;
+		font-feature-settings: 'palt' 1;
 		margin-bottom: 4px;
 	}
 
@@ -768,8 +879,13 @@
 		text-align: left;
 		transition: background 0.15s;
 	}
-	.rank-item:hover { background: var(--surface-hi); }
-	.rank-item:focus-visible { outline: 2px solid var(--live); outline-offset: -2px; }
+	.rank-item:hover {
+		background: var(--surface-hi);
+	}
+	.rank-item:focus-visible {
+		outline: 2px solid var(--live);
+		outline-offset: -2px;
+	}
 
 	.rank-num {
 		font-family: var(--mono);
@@ -800,7 +916,7 @@
 		font-size: 18px;
 		font-weight: 800;
 		letter-spacing: -0.01em;
-		font-feature-settings: "palt" 1;
+		font-feature-settings: 'palt' 1;
 	}
 
 	.rank-reasons {
@@ -821,7 +937,9 @@
 		align-items: center;
 	}
 
-	.type-badge { font-size: 14px; }
+	.type-badge {
+		font-size: 14px;
+	}
 
 	.rank-score-wrap {
 		flex-shrink: 0;
@@ -888,8 +1006,17 @@
 		white-space: nowrap;
 	}
 
-	.legend-item { display: flex; align-items: center; gap: 5px; }
-	.legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+	.legend-item {
+		display: flex;
+		align-items: center;
+		gap: 5px;
+	}
+	.legend-dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		flex-shrink: 0;
+	}
 
 	/* ─── Detail Panel ─── */
 	.detail-overlay {
@@ -939,8 +1066,13 @@
 		align-items: center;
 		justify-content: center;
 	}
-	.close-btn:hover { color: var(--text); }
-	.close-btn:focus-visible { outline: 2px solid var(--live); outline-offset: 2px; }
+	.close-btn:hover {
+		color: var(--text);
+	}
+	.close-btn:focus-visible {
+		outline: 2px solid var(--live);
+		outline-offset: 2px;
+	}
 
 	.detail-header {
 		display: flex;
@@ -951,7 +1083,10 @@
 		border-bottom: 1px solid var(--border);
 	}
 
-	.detail-score-block { flex-shrink: 0; text-align: center; }
+	.detail-score-block {
+		flex-shrink: 0;
+		text-align: center;
+	}
 
 	.detail-score {
 		font-family: var(--mono);
@@ -970,19 +1105,28 @@
 		margin-top: 2px;
 	}
 
-	.detail-title-block { flex: 1; min-width: 0; }
+	.detail-title-block {
+		flex: 1;
+		min-width: 0;
+	}
 
 	.detail-city {
 		font-size: 28px;
 		font-weight: 900;
 		letter-spacing: -0.02em;
-		font-feature-settings: "palt" 1;
+		font-feature-settings: 'palt' 1;
 		margin-bottom: 6px;
 	}
 
-	.detail-types { display: flex; gap: 5px; flex-wrap: wrap; }
+	.detail-types {
+		display: flex;
+		gap: 5px;
+		flex-wrap: wrap;
+	}
 
-	.detail-section { margin-bottom: 14px; }
+	.detail-section {
+		margin-bottom: 14px;
+	}
 
 	.section-label {
 		font-family: var(--mono);
@@ -1087,7 +1231,7 @@
 	/* ─── JMA alert badge in rank list ─── */
 	.jma-alert-badge {
 		font-size: 13px;
-		color: #B45309;
+		color: #b45309;
 		cursor: default;
 		line-height: 1;
 		user-select: none;
@@ -1110,7 +1254,11 @@
 		gap: 10px;
 	}
 
-	.jma-tooltip-area { display: flex; flex-direction: column; gap: 5px; }
+	.jma-tooltip-area {
+		display: flex;
+		flex-direction: column;
+		gap: 5px;
+	}
 
 	.jma-tooltip-name {
 		font-size: 11px;
@@ -1119,21 +1267,25 @@
 		letter-spacing: 0.02em;
 	}
 
-	.jma-tooltip-warnings { display: flex; flex-wrap: wrap; gap: 3px; }
+	.jma-tooltip-warnings {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 3px;
+	}
 
 	.jma-tooltip-chip {
 		font-size: 11px;
 		font-weight: 600;
-		background: #FDE68A;
-		color: #78350F;
+		background: #fde68a;
+		color: #78350f;
 		border-radius: 3px;
 		padding: 2px 7px;
 	}
 
 	/* ─── JMA alert section in detail panel ─── */
 	.jma-alert-section {
-		background: #FFFBEB;
-		border: 1px solid #FDE68A;
+		background: #fffbeb;
+		border: 1px solid #fde68a;
 		border-radius: 8px;
 		padding: 12px;
 		margin-bottom: 14px;
@@ -1146,12 +1298,14 @@
 		margin-bottom: 10px;
 	}
 
-	.jma-alert-icon { font-size: 14px; }
+	.jma-alert-icon {
+		font-size: 14px;
+	}
 
 	.jma-alert-title {
 		font-size: 11px;
 		font-weight: 700;
-		color: #92400E;
+		color: #92400e;
 		letter-spacing: 0.06em;
 		text-transform: uppercase;
 	}
@@ -1170,31 +1324,35 @@
 	.jma-area-name {
 		font-size: 12px;
 		font-weight: 700;
-		color: #78350F;
+		color: #78350f;
 	}
 
-	.jma-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+	.jma-chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
+	}
 
 	.jma-chip {
 		font-size: 11px;
 		font-weight: 600;
 		padding: 2px 8px;
 		border-radius: 3px;
-		background: #FEF3C7;
-		color: #92400E;
-		border: 1px solid #FDE68A;
+		background: #fef3c7;
+		color: #92400e;
+		border: 1px solid #fde68a;
 	}
 
 	.jma-chip-special {
-		background: #FEE2E2;
-		color: #991B1B;
-		border-color: #FECACA;
+		background: #fee2e2;
+		color: #991b1b;
+		border-color: #fecaca;
 	}
 
 	.jma-chip-warning {
-		background: #FEF3C7;
-		color: #92400E;
-		border-color: #FDE68A;
+		background: #fef3c7;
+		color: #92400e;
+		border-color: #fde68a;
 	}
 
 	/* ─── 観測データ grid ─── */
@@ -1287,8 +1445,15 @@
 
 	/* ─── Tablet tweaks ─── */
 	@media (min-width: 640px) {
-		h1 { font-size: 15px; }
-		.top-alert { margin: 14px 14px 6px; }
-		.rank-list { padding: 8px 14px 16px; gap: 8px; }
+		h1 {
+			font-size: 15px;
+		}
+		.top-alert {
+			margin: 14px 14px 6px;
+		}
+		.rank-list {
+			padding: 8px 14px 16px;
+			gap: 8px;
+		}
 	}
 </style>

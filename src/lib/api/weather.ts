@@ -20,16 +20,21 @@ function parseWeatherResponse(data: OpenMeteoWeatherResponse): WeatherData {
 	const precip = data.current.precipitation ?? 0;
 	const wind = data.current.wind_speed_10m ?? 0;
 
-	const observedAt = data.current.time
-		? new Date(data.current.time + ':00+09:00').getTime()
-		: null;
+	const observedAt = data.current.time ? new Date(data.current.time + ':00+09:00').getTime() : null;
 
 	let alertLevel: WeatherData['alertLevel'] = 'none';
 	if (WMO_SEVERE.has(code) || precip > 30) alertLevel = 'special';
 	else if (WMO_WARNING.has(code) || precip > 10) alertLevel = 'warning';
 	else if (precip > 2 || wind > 50) alertLevel = 'advisory';
 
-	return { temperature: temp, weatherCode: code, precipitation: precip, windSpeed: wind, alertLevel, observedAt };
+	return {
+		temperature: temp,
+		weatherCode: code,
+		precipitation: precip,
+		windSpeed: wind,
+		alertLevel,
+		observedAt,
+	};
 }
 
 export async function fetchWeather(lat: number, lng: number): Promise<WeatherData> {
@@ -51,11 +56,17 @@ export async function fetchWeatherBatch(
 	const url = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lngs}&current=temperature_2m,weather_code,precipitation,wind_speed_10m&timezone=Asia%2FTokyo&forecast_days=1`;
 
 	try {
-		const data = await fetchJson<OpenMeteoWeatherResponse | OpenMeteoWeatherResponse[]>(url, 'WeatherBatch');
+		const data = await fetchJson<OpenMeteoWeatherResponse | OpenMeteoWeatherResponse[]>(
+			url,
+			'WeatherBatch'
+		);
 		const arr = Array.isArray(data) ? data : [data];
 		return arr.map((d) => {
-			try { return parseWeatherResponse(d); }
-			catch { return null; }
+			try {
+				return parseWeatherResponse(d);
+			} catch {
+				return null;
+			}
 		});
 	} catch {
 		return regions.map(() => null);

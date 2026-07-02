@@ -1,27 +1,27 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { fetchWeather, getWeatherLabel } from './weather';
 
 // ---- getWeatherLabel --------------------------------------------------------
 
 describe('getWeatherLabel', () => {
 	it.each([
-		[0,   '快晴'],
-		[1,   '曇り'],
-		[3,   '曇り'],
-		[10,  '霧'],
-		[48,  '霧'],
-		[51,  '霧雨'],
-		[57,  '霧雨'],
-		[61,  '雨'],
-		[67,  '雨'],
-		[71,  '雪'],
-		[77,  '雪'],
-		[80,  'にわか雨'],
-		[82,  'にわか雨'],
-		[85,  '雪のにわか降り'],
-		[86,  '雪のにわか降り'],
-		[95,  '雷雨'],
-		[99,  '雷雨'],
+		[0, '快晴'],
+		[1, '曇り'],
+		[3, '曇り'],
+		[10, '霧'],
+		[48, '霧'],
+		[51, '霧雨'],
+		[57, '霧雨'],
+		[61, '雨'],
+		[67, '雨'],
+		[71, '雪'],
+		[77, '雪'],
+		[80, 'にわか雨'],
+		[82, 'にわか雨'],
+		[85, '雪のにわか降り'],
+		[86, '雪のにわか降り'],
+		[95, '雷雨'],
+		[99, '雷雨'],
 		[100, '不明'],
 	] as const)('code=%i → %s', (code, label) => {
 		expect(getWeatherLabel(code)).toBe(label);
@@ -30,12 +30,14 @@ describe('getWeatherLabel', () => {
 
 // ---- fetchWeather -----------------------------------------------------------
 
-function mockFetchWeather(overrides: Partial<{
-	temperature_2m: number;
-	weather_code: number;
-	precipitation: number;
-	wind_speed_10m: number;
-}> = {}) {
+function mockFetchWeather(
+	overrides: Partial<{
+		temperature_2m: number;
+		weather_code: number;
+		precipitation: number;
+		wind_speed_10m: number;
+	}> = {}
+) {
 	const current = {
 		temperature_2m: 20,
 		weather_code: 0,
@@ -43,10 +45,13 @@ function mockFetchWeather(overrides: Partial<{
 		wind_speed_10m: 0,
 		...overrides,
 	};
-	vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-		ok: true,
-		json: () => Promise.resolve({ current }),
-	}));
+	vi.stubGlobal(
+		'fetch',
+		vi.fn().mockResolvedValue({
+			ok: true,
+			json: () => Promise.resolve({ current }),
+		})
+	);
 }
 
 describe('fetchWeather', () => {

@@ -9,10 +9,13 @@ function makeFeature(mag: number, place: string | null, time: number, depth: num
 }
 
 function mockFetchEarthquake(features: ReturnType<typeof makeFeature>[]) {
-	vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-		ok: true,
-		json: () => Promise.resolve({ features }),
-	}));
+	vi.stubGlobal(
+		'fetch',
+		vi.fn().mockResolvedValue({
+			ok: true,
+			json: () => Promise.resolve({ features }),
+		})
+	);
 }
 
 describe('fetchEarthquake', () => {
@@ -21,7 +24,13 @@ describe('fetchEarthquake', () => {
 	it('地震なし → 全フィールドがnull', async () => {
 		mockFetchEarthquake([]);
 		const result = await fetchEarthquake(35.6, 139.7);
-		expect(result).toEqual({ magnitude: null, place: null, time: null, depth: null, distanceKm: null });
+		expect(result).toEqual({
+			magnitude: null,
+			place: null,
+			time: null,
+			depth: null,
+			distanceKm: null,
+		});
 	});
 
 	it('M5.2の地震を正しく返す', async () => {

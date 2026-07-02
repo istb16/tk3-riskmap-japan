@@ -7,15 +7,15 @@ export default defineConfig({
 		sveltekit({
 			compilerOptions: {
 				runes: ({ filename }) =>
-					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
+					filename.split(/[/\\]/).includes('node_modules') ? undefined : true,
 			},
 			adapter: adapter({
 				pages: 'build',
 				assets: 'build',
 				fallback: 'index.html',
 				precompress: false,
-				strict: false
-			})
-		})
-	]
+				strict: false,
+			}),
+		}),
+	],
 });

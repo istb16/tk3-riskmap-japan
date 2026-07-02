@@ -1,4 +1,13 @@
-import type { RegionRisk, WeatherData, EarthquakeData, AirData, JmaData, RiskType, Region, ScoreItem } from '../types';
+import type {
+	RegionRisk,
+	WeatherData,
+	EarthquakeData,
+	AirData,
+	JmaData,
+	RiskType,
+	Region,
+	ScoreItem,
+} from '../types';
 import { fetchWeather, getWeatherLabel, fetchWeatherBatch } from '../api/weather';
 import { fetchEarthquake, fetchEarthquakesAll } from '../api/earthquake';
 import { fetchAirQuality, fetchAirQualityBatch } from '../api/air';
@@ -12,7 +21,7 @@ import {
 	PM25_TIERS,
 	WEATHER_ALERT_RULES,
 	matchTier,
-	MAX_SCORE
+	MAX_SCORE,
 } from './scoringRules';
 import type { ScoreTier } from './scoringRules';
 
@@ -34,7 +43,7 @@ export function formatDateTime(ts: number): string {
 		day: 'numeric',
 		hour: '2-digit',
 		minute: '2-digit',
-		timeZone: 'Asia/Tokyo'
+		timeZone: 'Asia/Tokyo',
 	});
 }
 
@@ -80,24 +89,28 @@ function scoreMetric(
 		score: tier.score,
 		riskTypes: [riskType],
 		reasons: [label],
-		scoreItems: [{ label, points: tier.score }]
+		scoreItems: [{ label, points: tier.score }],
 	};
 }
 
-export function scoreWeather(w: WeatherData, jmaAlertLevel?: JmaData['alertLevel']): ScoreContribution {
+export function scoreWeather(
+	w: WeatherData,
+	jmaAlertLevel?: JmaData['alertLevel']
+): ScoreContribution {
 	const riskTypes: RiskType[] = [];
 	const reasons: string[] = [];
 	const scoreItems: ScoreItem[] = [];
 
 	// JMAが発令済み（'none'以外）の場合のみ優先。未発令('none')はOpen-Meteoの推定値を維持する
-	const effectiveAlertLevel = (jmaAlertLevel && jmaAlertLevel !== 'none') ? jmaAlertLevel : w.alertLevel;
+	const effectiveAlertLevel =
+		jmaAlertLevel && jmaAlertLevel !== 'none' ? jmaAlertLevel : w.alertLevel;
 
 	// 気象警報レベル + 風速 + 降水量 → 「weather」リスク
 	let weatherScore = 0;
 	const alert = WEATHER_ALERT_RULES[effectiveAlertLevel];
 	if (alert.score > 0) {
 		weatherScore += alert.score;
-		const timeStr = w.observedAt ? `　${formatDateTime(w.observedAt)}観測` : '';
+		const timeStr = w.observedAt ? ` ${formatDateTime(w.observedAt)}観測` : '';
 		const alertLabel = alert.reason(getWeatherLabel(w.weatherCode));
 		reasons.push(alertLabel + timeStr);
 		scoreItems.push({ label: alertLabel + timeStr, points: alert.score });
@@ -162,7 +175,7 @@ export function scoreEarthquake(eq: EarthquakeData): ScoreContribution {
 		score: adjustedScore,
 		riskTypes: ['earthquake'],
 		reasons: [label],
-		scoreItems: [{ label, points: adjustedScore, note }]
+		scoreItems: [{ label, points: adjustedScore, note }],
 	};
 }
 
@@ -200,8 +213,8 @@ function buildRegionRisk(
 			weather: w ?? undefined,
 			earthquake: eq ?? undefined,
 			air: a ?? undefined,
-			jma: j ?? undefined
-		}
+			jma: j ?? undefined,
+		},
 	};
 }
 
@@ -222,7 +235,7 @@ export async function calculateAllRegionRisks(regions: Region[]): Promise<AllReg
 		fetchWeatherBatch(regions),
 		fetchEarthquakesAll(regions),
 		fetchAirQualityBatch(regions),
-		fetchAllJmaWarnings(regions)
+		fetchAllJmaWarnings(regions),
 	]);
 
 	const weathers: (WeatherData | null)[] =
@@ -242,7 +255,14 @@ export async function calculateAllRegionRisks(regions: Region[]): Promise<AllReg
 
 	const now = Date.now();
 	const regionList = regions.map((region, i) =>
-		buildRegionRisk(region, weathers[i] ?? null, earthquakes[i] ?? null, airs[i] ?? null, jmas[i] ?? null, now)
+		buildRegionRisk(
+			region,
+			weathers[i] ?? null,
+			earthquakes[i] ?? null,
+			airs[i] ?? null,
+			jmas[i] ?? null,
+			now
+		)
 	);
 	return { regions: regionList, failedApis };
 }
@@ -253,7 +273,7 @@ export async function calculateRegionRisk(region: Region): Promise<RegionRisk> {
 		fetchWeather(region.lat, region.lng),
 		fetchEarthquake(region.lat, region.lng),
 		fetchAirQuality(region.lat, region.lng),
-		fetchJmaWarnings(region.jmaCode)
+		fetchJmaWarnings(region.jmaCode),
 	]);
 	return buildRegionRisk(
 		region,

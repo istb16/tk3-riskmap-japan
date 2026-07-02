@@ -14,7 +14,7 @@ export interface JmaData {
 export interface ScoreItem {
 	label: string;
 	points: number;
-	note?: string;  // "基礎40点 × 減衰0.43" など減衰がある場合のみ
+	note?: string; // "基礎40点 × 減衰0.43" など減衰がある場合のみ
 }
 
 export interface RegionRisk {
@@ -23,7 +23,7 @@ export interface RegionRisk {
 	lat: number;
 	lng: number;
 	riskScore: number;
-	rawScore: number;       // キャップ前の合計点
+	rawScore: number; // キャップ前の合計点
 	scoreItems: ScoreItem[]; // スコア内訳
 	riskTypes: RiskType[];
 	reasons: string[];

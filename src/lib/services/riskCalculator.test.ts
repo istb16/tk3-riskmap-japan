@@ -44,7 +44,14 @@ function makeAir(overrides: Partial<AirData> = {}): AirData {
 	return { pm25: null, aqi: null, ...overrides };
 }
 
-const TOKYO: Region = { id: 'tokyo', name: '東京', lat: 35.6895, lng: 139.6917, city: 'Tokyo', jmaCode: '130000' };
+const TOKYO: Region = {
+	id: 'tokyo',
+	name: '東京',
+	lat: 35.6895,
+	lng: 139.6917,
+	city: 'Tokyo',
+	jmaCode: '130000',
+};
 
 // ---- scoreWeather -----------------------------------------------------------
 
@@ -91,7 +98,9 @@ describe('scoreWeather', () => {
 
 		it('special+暴風 → 70点', () => {
 			// special=50 + 暴風(65km/h)=20
-			const result = scoreWeather(makeWeather({ alertLevel: 'special', windSpeed: 65, weatherCode: 95 }));
+			const result = scoreWeather(
+				makeWeather({ alertLevel: 'special', windSpeed: 65, weatherCode: 95 })
+			);
 			expect(result.score).toBe(70);
 		});
 	});
@@ -124,7 +133,9 @@ describe('scoreWeather', () => {
 		});
 
 		it('special + 猛暑 → weather と heat 両方のリスクタイプ', () => {
-			const result = scoreWeather(makeWeather({ alertLevel: 'special', temperature: 36, weatherCode: 95 }));
+			const result = scoreWeather(
+				makeWeather({ alertLevel: 'special', temperature: 36, weatherCode: 95 })
+			);
 			expect(result.riskTypes).toContain('weather');
 			expect(result.riskTypes).toContain('heat');
 		});
@@ -187,7 +198,9 @@ describe('scoreWeather 降水量', () => {
 	});
 
 	it('precipitation + alertLevel → 両方が加算される', () => {
-		const result = scoreWeather(makeWeather({ precipitation: 15, alertLevel: 'warning', weatherCode: 61 }));
+		const result = scoreWeather(
+			makeWeather({ precipitation: 15, alertLevel: 'warning', weatherCode: 61 })
+		);
 		expect(result.score).toBe(30 + 15); // 大雨警報 + 激しい雨
 	});
 });
@@ -233,7 +246,9 @@ describe('scoreEarthquake', () => {
 
 describe('scoreEarthquake 時間・距離減衰', () => {
 	it('M5, time=直後, dist=0km → 減衰なし score=40', () => {
-		const result = scoreEarthquake(makeEarthquake({ magnitude: 5.0, time: Date.now(), distanceKm: 0 }));
+		const result = scoreEarthquake(
+			makeEarthquake({ magnitude: 5.0, time: Date.now(), distanceKm: 0 })
+		);
 		expect(result.score).toBe(40);
 		expect(result.scoreItems[0].note).toBeUndefined();
 	});
@@ -247,7 +262,9 @@ describe('scoreEarthquake 時間・距離減衰', () => {
 	});
 
 	it('M5, time=直後, dist=333km → 距離減衰 score=8', () => {
-		const result = scoreEarthquake(makeEarthquake({ magnitude: 5.0, time: Date.now(), distanceKm: 333 }));
+		const result = scoreEarthquake(
+			makeEarthquake({ magnitude: 5.0, time: Date.now(), distanceKm: 333 })
+		);
 		// distFactor=0.2: Math.round(40 * 0.2) = 8
 		expect(result.score).toBe(8);
 	});

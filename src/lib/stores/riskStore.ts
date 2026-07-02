@@ -24,9 +24,7 @@ export async function refreshAll() {
 		regions.set(data);
 		lastUpdated.set(Date.now());
 		error.set(
-			failedApis.length > 0
-				? `一部データの取得に失敗しました（${failedApis.join('・')}）`
-				: null
+			failedApis.length > 0 ? `一部データの取得に失敗しました（${failedApis.join('・')}）` : null
 		);
 	} catch {
 		error.set('データ取得に失敗しました');
