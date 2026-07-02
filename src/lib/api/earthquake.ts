@@ -37,6 +37,10 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
 	return R * 2 * Math.asin(Math.sqrt(a));
 }
 
+function sevenDaysAgoDateStr(): string {
+	return new Date(Date.now() - SEVEN_DAYS_MS).toISOString().slice(0, 10);
+}
+
 function featureToEarthquakeData(
 	quake: USGSFeature,
 	regionLat: number,
@@ -55,9 +59,7 @@ function featureToEarthquakeData(
 
 /** 単一地域の地震データを取得する（後方互換・テスト用）。 */
 export async function fetchEarthquake(lat: number, lng: number): Promise<EarthquakeData> {
-	const now = new Date();
-	const past = new Date(now.getTime() - SEVEN_DAYS_MS);
-	const startTime = past.toISOString().slice(0, 10);
+	const startTime = sevenDaysAgoDateStr();
 
 	const url = `https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=${startTime}&latitude=${lat}&longitude=${lng}&maxradiuskm=${RADIUS_KM}&minmagnitude=${MIN_MAG}&orderby=magnitude&limit=1`;
 	const data = await fetchJson<USGSFeatureCollection>(url, 'Earthquake');
@@ -75,9 +77,7 @@ export async function fetchEarthquake(lat: number, lng: number): Promise<Earthqu
 export async function fetchEarthquakesAll(
 	regions: Array<{ lat: number; lng: number }>
 ): Promise<EarthquakeData[]> {
-	const now = new Date();
-	const past = new Date(now.getTime() - SEVEN_DAYS_MS);
-	const startTime = past.toISOString().slice(0, 10);
+	const startTime = sevenDaysAgoDateStr();
 
 	const url =
 		`https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson` +

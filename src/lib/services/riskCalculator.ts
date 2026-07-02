@@ -170,6 +170,41 @@ export function scoreAir(a: AirData): ScoreContribution {
 	return scoreMetric(a.pm25, PM25_TIERS, 'air');
 }
 
+function buildRegionRisk(
+	region: Region,
+	w: WeatherData | null,
+	eq: EarthquakeData | null,
+	a: AirData | null,
+	j: JmaData | null,
+	now: number
+): RegionRisk {
+	const contributions: ScoreContribution[] = [];
+	if (w) contributions.push(scoreWeather(w, j?.alertLevel));
+	if (eq) contributions.push(scoreEarthquake(eq));
+	if (a) contributions.push(scoreAir(a));
+	const totalScore = contributions.reduce((sum, c) => sum + c.score, 0);
+	const reasons = contributions.flatMap((c) => c.reasons);
+	const scoreItems = contributions.flatMap((c) => c.scoreItems);
+	return {
+		id: region.id,
+		name: region.name,
+		lat: region.lat,
+		lng: region.lng,
+		rawScore: totalScore,
+		riskScore: Math.min(MAX_SCORE, totalScore),
+		scoreItems,
+		riskTypes: contributions.flatMap((c) => c.riskTypes),
+		reasons: reasons.length > 0 ? reasons : ['現在危険情報なし'],
+		updatedAt: now,
+		details: {
+			weather: w ?? undefined,
+			earthquake: eq ?? undefined,
+			air: a ?? undefined,
+			jma: j ?? undefined
+		}
+	};
+}
+
 export interface AllRegionRisksResult {
 	regions: RegionRisk[];
 	failedApis: string[];
@@ -206,42 +241,9 @@ export async function calculateAllRegionRisks(regions: Region[]): Promise<AllReg
 	if (jmaSettled.status === 'rejected') failedApis.push('JMA警報');
 
 	const now = Date.now();
-
-	const regionList = regions.map((region, i) => {
-		const w = weathers[i] ?? null;
-		const eq = earthquakes[i] ?? null;
-		const a = airs[i] ?? null;
-		const j = jmas[i] ?? null;
-
-		const contributions: ScoreContribution[] = [];
-		if (w) contributions.push(scoreWeather(w, j?.alertLevel));
-		if (eq) contributions.push(scoreEarthquake(eq));
-		if (a) contributions.push(scoreAir(a));
-
-		const totalScore = contributions.reduce((sum, c) => sum + c.score, 0);
-		const reasons = contributions.flatMap((c) => c.reasons);
-		const scoreItems = contributions.flatMap((c) => c.scoreItems);
-
-		return {
-			id: region.id,
-			name: region.name,
-			lat: region.lat,
-			lng: region.lng,
-			rawScore: totalScore,
-			riskScore: Math.min(MAX_SCORE, totalScore),
-			scoreItems,
-			riskTypes: contributions.flatMap((c) => c.riskTypes),
-			reasons: reasons.length > 0 ? reasons : ['現在危険情報なし'],
-			updatedAt: now,
-			details: {
-				weather: w ?? undefined,
-				earthquake: eq ?? undefined,
-				air: a ?? undefined,
-				jma: j ?? undefined
-			}
-		};
-	});
-
+	const regionList = regions.map((region, i) =>
+		buildRegionRisk(region, weathers[i] ?? null, earthquakes[i] ?? null, airs[i] ?? null, jmas[i] ?? null, now)
+	);
 	return { regions: regionList, failedApis };
 }
 
@@ -253,38 +255,12 @@ export async function calculateRegionRisk(region: Region): Promise<RegionRisk> {
 		fetchAirQuality(region.lat, region.lng),
 		fetchJmaWarnings(region.jmaCode)
 	]);
-
-	const w = valueOrNull(weather);
-	const eq = valueOrNull(earthquake);
-	const a = valueOrNull(air);
-	const j = valueOrNull(jma);
-
-	const contributions: ScoreContribution[] = [];
-	// JMAが成功した場合はJMA警報レベルを優先。失敗時はOpen-Meteoのalertレベルにフォールバック
-	if (w) contributions.push(scoreWeather(w, j?.alertLevel));
-	if (eq) contributions.push(scoreEarthquake(eq));
-	if (a) contributions.push(scoreAir(a));
-
-	const totalScore = contributions.reduce((sum, c) => sum + c.score, 0);
-	const reasons = contributions.flatMap((c) => c.reasons);
-	const scoreItems = contributions.flatMap((c) => c.scoreItems);
-
-	return {
-		id: region.id,
-		name: region.name,
-		lat: region.lat,
-		lng: region.lng,
-		rawScore: totalScore,
-		riskScore: Math.min(MAX_SCORE, totalScore),
-		scoreItems,
-		riskTypes: contributions.flatMap((c) => c.riskTypes),
-		reasons: reasons.length > 0 ? reasons : ['現在危険情報なし'],
-		updatedAt: Date.now(),
-		details: {
-			weather: w ?? undefined,
-			earthquake: eq ?? undefined,
-			air: a ?? undefined,
-			jma: j ?? undefined
-		}
-	};
+	return buildRegionRisk(
+		region,
+		valueOrNull(weather),
+		valueOrNull(earthquake),
+		valueOrNull(air),
+		valueOrNull(jma),
+		Date.now()
+	);
 }

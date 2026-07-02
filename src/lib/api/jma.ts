@@ -102,23 +102,20 @@ export async function fetchJmaWarnings(prefCode: string): Promise<JmaData> {
 	// 一次細分区域（areaTypes[0]）を使用
 	const primaryAreas: JmaArea[] = warningData.areaTypes?.[0]?.areas ?? [];
 
-	const activeAreas: JmaWarningArea[] = primaryAreas
-		.map((area) => {
-			const activeCodes = (area.warnings ?? [])
-				.filter((w) => w.code && (w.status === '発表' || w.status === '継続'))
-				.map((w) => w.code as string);
-			return {
-				name: areaNames[area.code] ?? area.code,
-				warnings: activeCodes.map((c) => WARNING_CODE_TO_NAME[c] ?? `警報(${c})`)
-			};
-		})
-		.filter((area) => area.warnings.length > 0);
-
-	const allActiveCodes = primaryAreas.flatMap((area) =>
-		(area.warnings ?? [])
+	const allActiveCodes: string[] = [];
+	const activeAreas: JmaWarningArea[] = [];
+	for (const area of primaryAreas) {
+		const codes = (area.warnings ?? [])
 			.filter((w) => w.code && (w.status === '発表' || w.status === '継続'))
-			.map((w) => w.code as string)
-	);
+			.map((w) => w.code as string);
+		if (codes.length > 0) {
+			allActiveCodes.push(...codes);
+			activeAreas.push({
+				name: areaNames[area.code] ?? area.code,
+				warnings: codes.map((c) => WARNING_CODE_TO_NAME[c] ?? `警報(${c})`)
+			});
+		}
+	}
 
 	return { areas: activeAreas, alertLevel: alertLevelFromCodes(allActiveCodes) };
 }

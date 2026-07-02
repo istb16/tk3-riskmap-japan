@@ -2,6 +2,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { rankedRegions, loading, lastUpdated, error, selectedRegion, startAutoRefresh, stopAutoRefresh } from '$lib/stores/riskStore';
 	import { formatDateTime } from '$lib/services/riskCalculator';
+	import type { JmaWarningArea } from '$lib/types';
 	import type { Map as LeafletMap, Marker } from 'leaflet';
 
 	let mapEl: HTMLDivElement = $state()!;
@@ -10,10 +11,9 @@
 	let activeTab: 'ranking' | 'map' = $state('ranking');
 	let mapInitialized = false;
 
-	type TooltipArea = { name: string; warnings: string[] };
-	let jmaTooltip = $state<{ x: number; y: number; areas: TooltipArea[] } | null>(null);
+	let jmaTooltip = $state<{ x: number; y: number; areas: JmaWarningArea[] } | null>(null);
 
-	function showJmaTooltip(e: MouseEvent, areas: TooltipArea[]) {
+	function showJmaTooltip(e: MouseEvent, areas: JmaWarningArea[]) {
 		const x = Math.max(8, Math.min(e.clientX + 12, window.innerWidth - 334));
 		const y = Math.max(8, Math.min(e.clientY + 12, window.innerHeight - 120));
 		jmaTooltip = { x, y, areas };
@@ -25,9 +25,9 @@
 	let waveColor = $derived(scoreColor($rankedRegions[0]?.riskScore ?? 0));
 
 	function scoreColor(score: number): string {
-		if (score >= 61) return '#DC2626';
-		if (score >= 31) return '#B45309';
-		return '#16A34A';
+		if (score >= 61) return 'var(--danger)';
+		if (score >= 31) return 'var(--caution)';
+		return 'var(--safe)';
 	}
 
 	const RISK_TYPE: Record<string, { emoji: string; label: string }> = {
