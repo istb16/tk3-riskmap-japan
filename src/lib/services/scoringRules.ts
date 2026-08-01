@@ -69,16 +69,58 @@ export interface RiskBand {
 	readonly markerSizePx: number;
 	/** マーカー内のスコア文字サイズ（px）。 */
 	readonly markerFontPx: number;
+	/**
+	 * お気に入り（ピン留め）の行を展開して描くか。
+	 * `false` の帯は1行のコンパクト表示にし、理由文・警報バッジ・スコアバーを省く。
+	 *
+	 * マーカーのサイズと同じ「危険度で見た目の大きさが変わる」符号化を行にも効かせるもの。
+	 * **帯の属性として持つのは、UI 側に `score >= 30` のような比較を書かせないため。**
+	 * 境界を動かしても行の密度が自動で追随し、帯を増やしたときも
+	 * 「この帯は展開するのか」を必ず決めることになる（別表なら黙って置き去りにできる）。
+	 *
+	 * 「警戒」（気象庁の警戒レベル3相当・高齢者等避難）から上を展開する。
+	 * スコア分布は下側に圧縮されているので、「注意」まで下げると平常時に常時展開になり
+	 * 密度を分けた意味が消える（実測: 64地域中 平穏55・注意7・警戒2・危険0）。
+	 */
+	readonly rowExpanded: boolean;
 }
 
 export const RISK_BANDS: readonly RiskBand[] = [
 	// 警戒レベル4相当以上：全員避難
-	{ min: 50, label: '危険', colorVar: '--danger', markerSizePx: 48, markerFontPx: 15 },
+	{
+		min: 50,
+		label: '危険',
+		colorVar: '--danger',
+		markerSizePx: 48,
+		markerFontPx: 15,
+		rowExpanded: true,
+	},
 	// 警戒レベル3相当：高齢者等避難
-	{ min: 30, label: '警戒', colorVar: '--alert', markerSizePx: 40, markerFontPx: 13 },
+	{
+		min: 30,
+		label: '警戒',
+		colorVar: '--alert',
+		markerSizePx: 40,
+		markerFontPx: 13,
+		rowExpanded: true,
+	},
 	// 警戒レベル2相当
-	{ min: 10, label: '注意', colorVar: '--caution', markerSizePx: 32, markerFontPx: 12 },
-	{ min: 0, label: '平穏', colorVar: '--safe', markerSizePx: 26, markerFontPx: 11 },
+	{
+		min: 10,
+		label: '注意',
+		colorVar: '--caution',
+		markerSizePx: 32,
+		markerFontPx: 12,
+		rowExpanded: false,
+	},
+	{
+		min: 0,
+		label: '平穏',
+		colorVar: '--safe',
+		markerSizePx: 26,
+		markerFontPx: 11,
+		rowExpanded: false,
+	},
 ];
 
 export function riskBand(score: number): RiskBand {

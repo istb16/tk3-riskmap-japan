@@ -22,14 +22,39 @@ jobs:
           node-version: 24
           cache: npm
 
+      # --omit=dev を付けないこと。adapter-static も svelte/vite も devDependencies にあり、
+      # ビルドに必要（dependencies は実際にバンドルされる leaflet だけ）
       - name: Install dependencies
         run: npm ci
+
+      # 速いものから順に並べて、失敗を早く出す
+      - name: Lint
+        run: npm run lint
 
       - name: Type check
         run: npm run check
 
+      # npm test はロジック層のみ（vitest.config.ts で browser/live を除外している）
       - name: Run tests
         run: npm test
+
+      # ブラウザ層は Chromium が要るので別ステップ。
+      # ダウンロードだけキャッシュする（--with-deps の apt はキャッシュされない）
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: playwright-${{ runner.os }}-
+
+      - name: Install Chromium for browser tests
+        run: npx playwright install --with-deps chromium
+
+      - name: Run browser tests
+        run: npm run test:browser
+
+      # npm run verify:jma（気象庁コード表の追随確認）はここに入れないこと ——
+      # 実APIを叩くので、気象庁側の不調でデプロイが止まる。あれは人が回して結果を見るもの
 
       - name: Build
         run: npm run build

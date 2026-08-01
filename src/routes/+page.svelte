@@ -1,5 +1,5 @@
 ﻿<script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount, onDestroy, tick } from 'svelte';
 	import {
 		rankedRegions,
 		loading,
@@ -17,6 +17,8 @@
 		RISK_BANDS,
 		SWARM_WINDOW_DAYS,
 	} from '$lib/services/scoringRules';
+	import { pinnedIds, togglePinned } from '$lib/stores/pinnedStore';
+	import PinIcon from '$lib/components/PinIcon.svelte';
 	import { getWeatherLabel } from '$lib/api/weather';
 	import { splitRegionName } from '$lib/utils/regionName';
 	import { buildSearchIndex, matchesSearch, normalizeForSearch } from '$lib/utils/regionFilter';
@@ -29,6 +31,13 @@
 	let markers: Marker[] = [];
 	let activeTab: 'ranking' | 'map' = $state('ranking');
 	let mapInitialized = false;
+	/**
+	 * 破棄済みか。地図の初期化は動的 import を挟み、`invalidateSize` は
+	 * `requestAnimationFrame` 越しに走るので、どちらも破棄後に完了しうる。
+	 * 破棄後の Leaflet インスタンスに触ると内部状態が消えていて例外になる
+	 * （`_leaflet_pos` の undefined 参照）。
+	 */
+	let destroyed = false;
 
 	let jmaTooltip = $state<{ x: number; y: number; areas: JmaWarningArea[] } | null>(null);
 
@@ -72,6 +81,38 @@
 		rankedWithRank.filter(({ region }) => matchesSearch(SEARCH_INDEX, region.id, normalizedQuery))
 	);
 	let filtering = $derived(normalizedQuery !== '');
+
+	/**
+	 * お気に入り（ピン留め）セクション。
+	 *
+	 * `visibleRanked` から絞るので、(1) スコア降順が自然に保たれ、
+	 * (2) 絞り込みが自動でお気に入りにも効く（件数表示と画面の行数を一致させるため）。
+	 *
+	 * 空のときのヒントを出す条件が `!filtering` を含むのが重要 —— 絞り込みで0件になった
+	 * ときにヒントを出すと、ユーザーには「ピン留めが消えた」と読める。
+	 */
+	let pinnedRanked = $derived(visibleRanked.filter(({ region }) => $pinnedIds.has(region.id)));
+	let showPinHint = $derived($pinnedIds.size === 0 && !filtering);
+
+	// 密度の判断は帯が持っている（UIに閾値を書かない）。理由は RiskBand.rowExpanded を参照
+	const isCompactRow = (score: number) => !riskBand(score).rowExpanded;
+
+	// ラベルは2か所（行の title・詳細パネルの文字）で同じものを出す
+	const pinActionLabel = (pinned: boolean) => (pinned ? 'お気に入りから外す' : 'お気に入りに追加');
+
+	/**
+	 * ピンの押下。お気に入りセクション側で「外す」を押すと、その行ごと
+	 * 押したボタンが消えるのでフォーカスが `<body>` に落ちる —— キーボード・読み上げの
+	 * 利用者は現在位置を失い、次の Tab が文書の先頭から再開してしまう。
+	 * 同じ地域のピンは全国リストに残っているので、そこへ移す。
+	 */
+	async function handlePinClick(id: string, inFavorites: boolean) {
+		const wasPinned = $pinnedIds.has(id);
+		togglePinned(id);
+		if (!inFavorites || !wasPinned) return;
+		await tick();
+		document.querySelector<HTMLElement>(`.pin-btn[data-region-id="${CSS.escape(id)}"]`)?.focus();
+	}
 
 	const RISK_TYPE: Record<string, { emoji: string; label: string }> = {
 		weather: { emoji: '🌧️', label: '気象' },
@@ -159,10 +200,16 @@
 	}
 
 	async function ensureMapInit() {
-		if (mapInitialized || !mapEl) return;
+		// destroyed の確認が必要 —— initMap は動的 import を待つので、
+		// 破棄後に完了して外れた DOM の上に地図を作ってしまいうる
+		if (mapInitialized || destroyed || !mapEl) return;
 		try {
 			mapInitialized = true;
 			await initMap();
+			if (destroyed && map) {
+				map.remove();
+				map = null;
+			}
 		} catch {
 			mapInitialized = false;
 		}
@@ -171,7 +218,9 @@
 	$effect(() => {
 		if (activeTab === 'map' && mapEl) {
 			ensureMapInit().then(() => {
-				requestAnimationFrame(() => map?.invalidateSize());
+				requestAnimationFrame(() => {
+					if (!destroyed) map?.invalidateSize();
+				});
 			});
 		}
 	});
@@ -206,8 +255,14 @@
 	});
 
 	onDestroy(() => {
+		destroyed = true;
 		stopAutoRefresh();
-		if (map) map.remove();
+		if (map) {
+			map.remove();
+			// null に戻すのが要点。remove() 済みのインスタンスを参照に残すと
+			// 遅れて走る `map?.invalidateSize()` が中身の消えた地図に触って例外になる
+			map = null;
+		}
 	});
 </script>
 
@@ -224,6 +279,101 @@
 		splitRegionName(name)}{parts.base}{#if parts.prefecture}<span class="name-pref"
 			>（{parts.prefecture}）</span
 		>{/if}{/snippet}
+
+<!--
+	ランキングの1行。お気に入りセクションと全国リストで同じものを描くため snippet にしている。
+
+	`<li>` の中で行ボタンとピンボタンを**兄弟**にしているのが要点。
+	`.rank-item` 自体が `<button>` なので中にピンを置くと `<button>` の入れ子になり
+	不正なHTMLになる。兄弟なら (1) HTMLとして正しく、(2) クリックのバブリングが
+	そもそも起きないので stopPropagation が不要、(3) Tab 順が 行 → ピン と自然になる。
+
+	`inFavorites` はお気に入りセクション側の行かどうか。コンパクト表示はお気に入りでしか
+	起こらないのでフラグは1つで足り、密度と「どちらのセクションか」が食い違うこともない。
+	コンパクト行は理由文・警報バッジ・スコアバーを落として1行にする
+	（「実家は今日も平穏」の確認に理由文は要らない）。危険度が上がると自動で展開されるので、
+	地図マーカーと同じ「サイズ＝危険度」の文法になる。
+-->
+{#snippet rankRow(city: RegionRisk, rank: number, inFavorites: boolean)}
+	{@const pinned = $pinnedIds.has(city.id)}
+	{@const compact = inFavorites && isCompactRow(city.riskScore)}
+	<li class="rank-row" class:rank-row-compact={compact}>
+		<button
+			class="rank-item"
+			class:rank-item-compact={compact}
+			onclick={() => selectedRegion.set(city)}
+		>
+			<div class="rank-num" style="color:{scoreColor(city.riskScore)}">
+				{rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`}
+			</div>
+			<div class="rank-info">
+				<div class="rank-name-row">
+					<span class="rank-name">{@render regionName(city.name)}</span>
+					{#if city.riskTypes.length > 0}
+						<span class="rank-types">
+							{#each city.riskTypes as t (t)}
+								<span class="type-badge">{riskTypeEmoji(t)}</span>
+							{/each}
+						</span>
+					{/if}
+					{#if !compact && city.details.jma && city.details.jma.areas.length > 0}
+						<!--
+							ホバーで区域別の警報を出す補助表示。`role="button"` と `tabindex` は付けない ——
+							付けるとキーボードでフォーカスできるのに開く手段がない罠になり、
+							しかも `<button>`（行）の中の対話要素という不正な入れ子にもなる。
+							同じ内容は行を開いた詳細パネルに全部出るので、キーボードでも到達できる。
+						-->
+						<span
+							class="jma-alert-badge"
+							aria-hidden="true"
+							onmouseenter={(e) => showJmaTooltip(e, city.details.jma!.areas)}
+							onmouseleave={hideJmaTooltip}>⚠</span
+						>
+					{/if}
+				</div>
+				{#if !compact && city.reasons.length > 0}
+					<div class="rank-reasons">
+						{#each city.reasons as r, i (i)}<span>{r}</span>{/each}
+					</div>
+				{/if}
+			</div>
+			<div class="rank-score-wrap">
+				<div class="rank-score" style="color:{scoreColor(city.riskScore)}">
+					{city.riskScore}
+				</div>
+				<div class="rank-label" style="color:{scoreColor(city.riskScore)}">
+					{scoreLabel(city.riskScore)}
+				</div>
+				{#if !compact}
+					<div class="score-bar-bg">
+						<div
+							class="score-bar-fill"
+							style="width:{city.riskScore}%;background:{scoreColor(city.riskScore)}"
+						></div>
+					</div>
+				{/if}
+			</div>
+		</button>
+		<!--
+			`aria-pressed` を付けるので、読み上げ名は状態に依存させない ——
+			「お気に入りから外す」を名前にすると、留まっているとき
+			「熊本をお気に入りから外す、押されています」と二重否定になって読める。
+			状態は `aria-pressed` が運び、名前は対象だけを指す。
+			`title` は状態依存のままでよい（マウス利用者へのヒントで、読み上げ名にはならない）。
+		-->
+		<button
+			class="pin-btn"
+			class:pin-on={pinned}
+			data-region-id={city.id}
+			onclick={() => handlePinClick(city.id, inFavorites)}
+			aria-pressed={pinned}
+			aria-label="{city.name}のお気に入り"
+			title={pinActionLabel(pinned)}
+		>
+			<PinIcon filled={pinned} />
+		</button>
+	</li>
+{/snippet}
 
 <div class="app">
 	<!-- Header -->
@@ -300,9 +450,15 @@
 		<!--
 			件数は常に出す。変換途中で件数が 64 → 12 → 1 と連続的に動くのが見えていれば、
 			0件になっても「入力の途中」だと分かる。
+			ただしデータ取得前は何も言わない —— `visibleRanked` が空なのは絞り込みの結果ではなく
+			まだ何も無いからで、空の入力欄の隣で「該当なし」と出るのは嘘になる。
+			なお数えているのは「該当した地域数」で、画面の行数ではない
+			（ピン留めした地域は上下に重複して出るため一致しない）。
 		-->
 		<span class="filter-count" aria-live="polite">
-			{#if visibleRanked.length === 0}
+			{#if $rankedRegions.length === 0}
+				&nbsp;
+			{:else if visibleRanked.length === 0}
 				該当なし
 			{:else}
 				{visibleRanked.length}地域
@@ -339,61 +495,60 @@
 				</div>
 
 				<!--
+					お気に入り（ピン留め）セクション。rank-list の上に置いているので、画面最上部が
+					一番安全という「上にあるほど危険」の反転が起きる。これを許容できるのは、
+					バナー（すぐ上）が絞り込みにもピンにも影響されず常に全国1位を出し続けるため
+					—— 押し出されるのは「1位の行」であって「1位の情報」ではない。
+
+					ピン留めした地域は下の全国リストからは抜かない。抜くと順位に欠番ができ
+					（#7 → #9 → #10）、さらにピンを外したときに行が64行のどこか遠くへワープして
+					操作の結果が画面から消える。
+				-->
+				{#if pinnedRanked.length > 0}
+					<div class="section-head">
+						<span class="section-icon" aria-hidden="true">📌</span>
+						<h2 class="section-title">お気に入り</h2>
+						<span class="section-count">{pinnedRanked.length}</span>
+					</div>
+					<ol class="rank-list">
+						{#each pinnedRanked as { region: city, rank } (city.id)}
+							{@render rankRow(city, rank, true)}
+						{/each}
+					</ol>
+					<hr class="section-sep" />
+				{:else if showPinHint}
+					<!--
+						空のときだけ出すヒント。未ピンのピンは薄いグレーなので、これがないと
+						機能に気づかれない（使われなければ価値が0の機能）。
+						「一度見たら出さない」フラグを持つ必要はない —— 1件でもピンすれば
+						空でなくなるので自動的に消える。
+						絞り込みで0件のときは出さない（`showPinHint` の `!filtering`）——
+						出すと「ピン留めが消えた」と読める。
+					-->
+					<p class="pin-hint">
+						<span aria-hidden="true">📌</span> 行のピンを押すと、気になる地域をここに固定できます
+					</p>
+					<hr class="section-sep" />
+				{/if}
+
+				<!--
+					全国リスト側の見出しは無条件で出す。お気に入りセクションの有無で出し入れすると、
+					「ピンはあるが絞り込みで全部外れた」状態で見出しが消え、リストがバナーの直下に
+					貼り付く（両側にラベルがあってこそセパレータが「区切り」として読める）。
+				-->
+				<div class="section-head">
+					<h2 class="section-title">全国ランキング</h2>
+				</div>
+
+				<!--
 					Rank List。番号は絞り込み前に確定した全国順位（rank）を使う。
 					メダルも全国3位以内にだけ付く —— 絞り込み内で振り直すと、スコア23点の地域に
 					🥇が付いて「注意」の黄色と矛盾する。
 					「北海道内で何位か」は並び順が既に答えているので番号を振り直す必要はない。
 				-->
 				<ol class="rank-list">
-					{#each visibleRanked as { region: city, rank } (city.name)}
-						<li>
-							<button class="rank-item" onclick={() => selectedRegion.set(city)}>
-								<div class="rank-num" style="color:{scoreColor(city.riskScore)}">
-									{rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`}
-								</div>
-								<div class="rank-info">
-									<div class="rank-name-row">
-										<span class="rank-name">{@render regionName(city.name)}</span>
-										{#if city.riskTypes.length > 0}
-											<span class="rank-types">
-												{#each city.riskTypes as t (t)}
-													<span class="type-badge">{riskTypeEmoji(t)}</span>
-												{/each}
-											</span>
-										{/if}
-										{#if city.details.jma && city.details.jma.areas.length > 0}
-											<span
-												class="jma-alert-badge"
-												role="button"
-												tabindex="0"
-												aria-label="気象庁警報あり"
-												onmouseenter={(e) => showJmaTooltip(e, city.details.jma!.areas)}
-												onmouseleave={hideJmaTooltip}>⚠</span
-											>
-										{/if}
-									</div>
-									{#if city.reasons.length > 0}
-										<div class="rank-reasons">
-											{#each city.reasons as r, i (i)}<span>{r}</span>{/each}
-										</div>
-									{/if}
-								</div>
-								<div class="rank-score-wrap">
-									<div class="rank-score" style="color:{scoreColor(city.riskScore)}">
-										{city.riskScore}
-									</div>
-									<div class="rank-label" style="color:{scoreColor(city.riskScore)}">
-										{scoreLabel(city.riskScore)}
-									</div>
-									<div class="score-bar-bg">
-										<div
-											class="score-bar-fill"
-											style="width:{city.riskScore}%;background:{scoreColor(city.riskScore)}"
-										></div>
-									</div>
-								</div>
-							</button>
-						</li>
+					{#each visibleRanked as { region: city, rank } (city.id)}
+						{@render rankRow(city, rank, false)}
 					{/each}
 				</ol>
 				<!--
@@ -425,6 +580,7 @@
 
 	<!-- Detail Panel (fixed overlay) -->
 	{#if $selectedRegion}
+		{@const detailPinned = $pinnedIds.has($selectedRegion.id)}
 		<div class="detail-overlay" role="dialog" aria-modal="true">
 			<button
 				class="detail-backdrop"
@@ -447,7 +603,29 @@
 						</div>
 					</div>
 					<div class="detail-title-block">
-						<h2 class="detail-city">{@render regionName($selectedRegion.name)}</h2>
+						<div class="detail-title-row">
+							<h2 class="detail-city">{@render regionName($selectedRegion.name)}</h2>
+							<!--
+								ラベル付きのピン。ここに文字を置けることが本当の価値 ——
+								行のピンは単色のアイコンだけなので「押すと何が起きるか」を語らない。
+								この文言がその辞書になる。
+								右上（✕ の隣）には置かない。閉じるボタンの隣接位置に別の操作を置くと
+								「外すつもりが閉じた」「閉じるつもりが留めた」が起きる。
+							-->
+							<!--
+								ここは `aria-pressed` を付けない —— 見えている文字が状態そのものを
+								語っているので、状態依存のラベルに `aria-pressed` を重ねると
+								「お気に入りから外す、押されています」と読める。
+							-->
+							<button
+								class="detail-pin-btn"
+								class:pin-on={detailPinned}
+								onclick={() => togglePinned($selectedRegion!.id)}
+							>
+								<PinIcon filled={detailPinned} size={14} />
+								{pinActionLabel(detailPinned)}
+							</button>
+						</div>
 						<div class="detail-types">
 							{#each $selectedRegion.riskTypes as t (t)}
 								<span class="type-tag">{riskTypeEmoji(t)} {riskTypeLabel(t)}</span>
@@ -1114,12 +1292,32 @@
 		padding: 8px 12px 16px;
 	}
 
+	/**
+	 * 1行の外枠。行ボタンとピンボタンを横に並べる。
+	 * ピンは上端揃え —— 展開行では視覚的に右上に来る。コンパクト行は1行なので単に右端。
+	 *
+	 * 縦の余白を `--row-pad-y` として行が公開し、中の行ボタンとピンボタンの両方が読む。
+	 * ピンは行の「4列目」なので1行目の高さに合わせる必要があり、この値を持たないと
+	 * 行の padding を変えたときにアイコンだけ静かにずれる。
+	 */
+	.rank-row {
+		display: flex;
+		align-items: flex-start;
+		gap: 4px;
+		--row-pad-y: 12px;
+	}
+
+	.rank-row-compact {
+		--row-pad-y: 7px;
+	}
+
 	.rank-item {
-		width: 100%;
+		flex: 1;
+		min-width: 0;
 		display: flex;
 		align-items: center;
 		gap: 12px;
-		padding: 12px 14px;
+		padding: var(--row-pad-y) 14px;
 		background: var(--surface);
 		border: 1px solid var(--border);
 		border-radius: 10px;
@@ -1135,6 +1333,109 @@
 	.rank-item:focus-visible {
 		outline: 2px solid var(--live);
 		outline-offset: -2px;
+	}
+
+	/**
+	 * お気に入りの「警戒」帯未満の行。理由文・警報バッジ・スコアバーを落としたうえで
+	 * 文字を詰めて1行に収める（縦の余白は `--row-pad-y`）。
+	 * 危険度が上がると自動で展開行に戻る。
+	 */
+	.rank-item-compact .rank-score {
+		font-size: 20px;
+	}
+	.rank-item-compact .rank-name {
+		font-size: 16px;
+	}
+
+	/**
+	 * ピンボタン。未ピンは輪郭だけ・薄く、ピン済みは塗って色を付ける。
+	 * 単色（currentColor）なので、危険度の4色ともタイプバッジの絵文字とも競合しない。
+	 *
+	 * タップ領域は 44px（iOS の指針）を幅で確保し、高さは `align-self: stretch` で
+	 * 行いっぱい（最小でもコンパクト行の54px）になる。
+	 * アイコン自体は行の1行目に合わせるため上端に寄せる。
+	 */
+	.pin-btn {
+		flex-shrink: 0;
+		width: 44px;
+		align-self: stretch;
+		display: flex;
+		align-items: flex-start;
+		justify-content: center;
+		padding: var(--row-pad-y) 0 0;
+		background: transparent;
+		border: 1px solid transparent;
+		border-radius: 10px;
+		color: var(--text-2);
+		opacity: 0.35;
+		cursor: pointer;
+		transition:
+			opacity 0.15s,
+			color 0.15s,
+			background 0.15s;
+	}
+
+	.pin-btn:hover {
+		opacity: 1;
+		background: var(--surface-hi);
+	}
+
+	.pin-btn:focus-visible {
+		outline: 2px solid var(--live);
+		outline-offset: -2px;
+		opacity: 1;
+	}
+
+	.pin-btn.pin-on {
+		opacity: 1;
+		color: var(--live);
+	}
+
+	/* ─── セクション見出し（お気に入り / 全国ランキング） ─── */
+	.section-head {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 14px 14px 2px;
+	}
+
+	.section-icon {
+		font-size: 13px;
+	}
+
+	.section-title {
+		font-size: 12px;
+		font-weight: 800;
+		letter-spacing: 0.08em;
+		color: var(--text-2);
+	}
+
+	.section-count {
+		font-family: var(--mono);
+		font-size: 11px;
+		font-weight: 700;
+		color: var(--text-2);
+		background: var(--surface-hi);
+		border-radius: 10px;
+		padding: 1px 7px;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.section-sep {
+		border: none;
+		border-top: 1px solid var(--border);
+		margin: 10px 14px 0;
+	}
+
+	/**
+	 * お気に入りが空のときだけ出すヒント。未ピンのピンは薄いので、これがないと
+	 * 機能に気づかれない。1件でもピンすれば空でなくなるので自動的に消える。
+	 */
+	.pin-hint {
+		padding: 14px 14px 0;
+		font-size: 12px;
+		line-height: 1.5;
+		color: var(--text-2);
 	}
 
 	.rank-num {
@@ -1371,6 +1672,53 @@
 	.detail-title-block {
 		flex: 1;
 		min-width: 0;
+	}
+
+	.detail-title-row {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 10px;
+		flex-wrap: wrap;
+		/* ✕（close-btn）は右上に絶対配置されているので、その分だけ空けておく */
+		padding-right: 34px;
+	}
+
+	/**
+	 * 詳細パネルのピン。ここだけラベル付きにしている ——
+	 * 行の単色アイコンが何をするものかを、この文言が教える辞書になる。
+	 */
+	.detail-pin-btn {
+		flex-shrink: 0;
+		display: inline-flex;
+		align-items: center;
+		gap: 5px;
+		padding: 6px 12px;
+		background: var(--surface-hi);
+		border: 1px solid var(--border);
+		border-radius: 20px;
+		color: var(--text-2);
+		font: inherit;
+		font-size: 12px;
+		font-weight: 700;
+		cursor: pointer;
+		transition:
+			color 0.15s,
+			border-color 0.15s;
+	}
+
+	.detail-pin-btn:hover {
+		color: var(--text);
+	}
+
+	.detail-pin-btn:focus-visible {
+		outline: 2px solid var(--live);
+		outline-offset: 2px;
+	}
+
+	.detail-pin-btn.pin-on {
+		color: var(--live);
+		border-color: var(--live);
 	}
 
 	.detail-city {

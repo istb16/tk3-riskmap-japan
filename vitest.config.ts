@@ -5,8 +5,10 @@ export default defineConfig({
 	test: {
 		environment: 'node',
 		globals: true,
-		// *.live.test.ts はネットワークにアクセスするため通常実行から除外する（npm run verify:jma で実行）
-		exclude: [...configDefaults.exclude, '**/*.live.test.ts'],
+		// 外部リソースを要するテストは通常実行から外す。
+		// *.live.test.ts   … ネットワークにアクセスする（npm run verify:jma）
+		// *.browser.test.ts … Chromium のバイナリを要する（npm run test:browser）
+		exclude: [...configDefaults.exclude, '**/*.live.test.ts', '**/*.browser.test.ts'],
 		coverage: {
 			provider: 'v8',
 			include: ['src/lib/**/*.ts'],

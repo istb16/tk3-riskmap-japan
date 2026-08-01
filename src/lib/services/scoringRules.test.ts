@@ -276,6 +276,25 @@ describe('地図マーカーのサイズ', () => {
 	});
 });
 
+describe('お気に入り行の密度（rowExpanded）', () => {
+	it('「警戒」以上を展開し、「注意」以下はコンパクトにする', () => {
+		const expanded = RISK_BANDS.filter((b) => b.rowExpanded).map((b) => b.label);
+		expect(expanded).toEqual(['危険', '警戒']);
+	});
+
+	// 「注意は畳むが危険は畳む」のような穴を作らせない。
+	// 帯を増やしたときも、境界より上が必ず展開されることを保証する。
+	it('危険度が下がる方向に反転しない（一度 false になったらそれ以下も false）', () => {
+		const flags = RISK_BANDS.map((b) => b.rowExpanded);
+		expect(flags).toEqual([...flags].sort((a, b) => Number(b) - Number(a)));
+	});
+
+	it('気象庁の警戒レベル3（警報＝30点）から展開される', () => {
+		expect(riskBand(ALERT_LEVEL_SCORES.warning).rowExpanded).toBe(true);
+		expect(riskBand(ALERT_LEVEL_SCORES.advisory).rowExpanded).toBe(false);
+	});
+});
+
 describe('ALERT_LEVEL_SCORES', () => {
 	it('早期注意情報=5 / 注意報=10 / 警報=30 / 危険警報=50 / 特別警報=70', () => {
 		expect(ALERT_LEVEL_SCORES.none).toBe(0);

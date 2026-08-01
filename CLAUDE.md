@@ -32,11 +32,15 @@ src/
     services/
       scoringRules.ts    # 段階表・加点・理由文言（ポリシー層）
       riskCalculator.ts  # スコア算出とAPI統合（評価ロジック層）
+    components/
+      PinIcon.svelte  # ピンのアイコン（単色・fill有無で二状態）
     stores/
       riskStore.ts    # グローバルstate・自動更新（5分間隔）
+      pinnedStore.ts  # ピン留め地域（localStorage 永続化）
     utils/
       concurrent.ts   # 同時実行数を制限した並列fetch（順序を保持）
       geo.ts          # ハーバサイン距離
+      pinnedStorage.ts # ピン留めの保存形式（パース・検証）
       regionFilter.ts # 地域フィルタの照合（正規化・部分一致）
       regionName.ts   # 表示名を地域名と所属都道府県に分割
       settled.ts      # Promise.allSettled のヘルパー
@@ -283,6 +287,39 @@ IME で `kushiro` と打つと**変換を確定する前に入力欄の値は既
 
 **最大瞬間風速は平均風速と別の閾値を持つ。** 実データでは突風は平均風速の約4倍で観測される。
 
+## ピン留め（お気に入り）
+
+ランキングの各行のピンを押すと、その地域が rank-list の上の別セクションに出る。
+用途は「**自分に関係のある地域を常に見る**」（自宅・実家・勤務地）で、想定件数は1〜4件。
+設計の経緯は [`.grill/pin-favorite-regions.md`](.grill/pin-favorite-regions.md)。
+
+- **保存するのは地域IDの「順序を持たない集合」。** 表示は常にスコア降順なので順序が不要。
+  順序を保存すると必然的に並べ替えUI（ドラッグ&ドロップ）を要求されてスコープが跳ねる
+- **`localStorage` の全アクセスを `try/catch` で包む。** Safari のプライベートモードは
+  `localStorage` の参照自体が例外を投げる。**防災アプリの初期描画を例外で落としてはいけない**
+  ので、失敗したらセッション内メモリだけで動かす（ピンは効くが次回に残らない）
+- **初期値は同期で読む。`$effect` では読まない** —— `$effect` は初回描画の後に走るので、
+  「お気に入りが空のときのヒント」が一瞬見えてから消える
+- **知らないIDは読むときに捨てるだけで、保存値には書き戻さない。** 地域構成が変わればIDは
+  消えうる（`hokkaido` は8地域へ分割した）。掃除結果を書き戻すと、**キャッシュに残った古い
+  バンドルが新しいIDのピンを消してしまい、移行コードが手を出す余地もなくなる**。
+  読み捨てるだけでも表示は同じなので、書き戻す利点はない。
+  **`regions.ts` の `id` を変える変更は保存済みのピンを表示から落とすので、移行を検討する**
+- バージョン欄は持たない。「文字列の配列か」の検証で形の違いは検出でき、
+  将来スキーマを変えたら古い値は弾かれて空扱いになる
+
+UI側で外してはいけない点:
+
+- **ピンボタンは行ボタンの「兄弟」にする。** `.rank-item` 自体が `<button>` なので、
+  中に置くと `<button>` の入れ子で不正なHTMLになる。兄弟ならクリックのバブリングが
+  そもそも起きないので `stopPropagation` も不要
+- **ピン留めした地域を下の全国リストから抜かない。** 抜くと順位に欠番ができ（#7 → #9）、
+  さらにピンを外したとき行が64行のどこか遠くへワープして操作の結果が画面から消える
+- **絞り込みで0件になったときに「空のヒント」を出さない。** 出すと「ピン留めが消えた」と読める。
+  条件は「空**かつ**絞り込み中でない」
+- お気に入り行の密度は **`RiskBand.rowExpanded`（帯の属性）** で決める。UIに `score >= 30` の
+  ような比較を書かないこと —— 帯を増やしたとき「この帯は展開するのか」を必ず決めることになる
+
 ## 使用API（すべて無料・APIキー不要・フロント直接fetch）
 
 | API                    | エンドポイント                                             | 用途                                  |
@@ -343,11 +380,23 @@ npm run dev           # 開発サーバー起動（localhost:5173）
 npm run build         # 本番ビルド → build/ フォルダ
 npm run preview       # ビルド結果のプレビュー
 npm run check         # TypeScript型チェック
-npm test              # テスト実行（vitest run）
+npm test              # ロジックのテスト（vitest run・外部依存なし）
 npm run test:watch    # ウォッチモードでテスト
 npm run test:coverage # カバレッジレポート生成
+npm run test:browser  # ブラウザモードのテスト（Chromium が必要）
+npm run test:all      # npm test ＋ test:browser
 npm run verify:jma    # 気象庁コード表の追随確認（実APIにアクセス）
+npm run lint          # ESLint ＋ Prettier のチェック
+npm run lint:fix      # ESLint --fix ＋ Prettier --write
+npm run format        # Prettier --write
 ```
+
+**改行コードは LF に固定している（`.gitattributes` の `* text=auto eol=lf`）。**
+これを外すと Windows では `core.autocrlf=true` が作業ツリーを CRLF でチェックアウトし、
+Prettier の既定（`endOfLine: "lf"`）と食い違って **`npm run lint` が内容は同一のまま失敗する**。
+`.prettierrc` に `endOfLine: "auto"` を足して両方許す対処に切り替えないこと ——
+開発機ごとに改行が変わる状態が残る。
+`.gitattributes` を変更した直後は `git add --renormalize .` でインデックスを揃える。
 
 ## 設計変更時の必須手順（grill-me）
 
@@ -387,12 +436,23 @@ npm run verify:jma    # 気象庁コード表の追随確認（実APIにアク�
   （地図マーカーのサイズを危険度別に変える）
 - [`.grill/region-filter-suggest.md`](.grill/region-filter-suggest.md)
   （地域フィルタ。かな照合・全国順位の維持・地図も絞る・入力欄をパネルの外に置く）
+- [`.grill/pin-favorite-regions.md`](.grill/pin-favorite-regions.md)
+  （地域のピン留め。危険度で行の密度を変える・重複表示・localStorage の契約）
 
 ## テスト方針
 
-- テストフレームワーク: **Vitest**（`vitest.config.ts` で設定）
-- テストファイルは対象ファイルと同じディレクトリに `*.test.ts` で配置
-- `.svelte` コンポーネントはテスト対象外（ビジネスロジックのみテスト）
+テストは3層に分かれており、**設定ファイルごとに実行コマンドが違う**。
+
+| 層               | ファイル            | 設定                       | コマンド               | 外部依存          |
+| ---------------- | ------------------- | -------------------------- | ---------------------- | ----------------- |
+| ロジック（既定） | `*.test.ts`         | `vitest.config.ts`         | `npm test`             | なし              |
+| ブラウザ         | `*.browser.test.ts` | `vitest.browser.config.ts` | `npm run test:browser` | Chromium バイナリ |
+| 実API            | `*.live.test.ts`    | `vitest.live.config.ts`    | `npm run verify:jma`   | ネットワーク      |
+
+**下2層は `vitest.config.ts` の `exclude` で `npm test` から外している。** 外部リソースが
+無い環境で `npm test` が落ちないようにするため。両方まとめて走らせるなら `npm run test:all`。
+
+- テストファイルは対象ファイルと同じディレクトリに置く
 - `vi.mock` はモジュールトップレベルに置く（関数内で呼ぶとhoist問題が起きる）
 - モジュールモックの設定は `beforeEach` で `vi.mocked(fn).mockResolvedValue(...)` を使う
 - `scoreWeather`, `scoreEarthquake`, `scoreTsunami`, `scoreVolcano`, `scoreAir` は直接テストできるよう `export` している
@@ -403,8 +463,37 @@ npm run verify:jma    # 気象庁コード表の追随確認（実APIにアク�
   パース関数に直接データを渡す
 - 例外は `*.live.test.ts`（気象庁コード表の追随確認）。`vitest.config.ts` の `exclude` で
   通常実行から外し、`npm run verify:jma` でのみ走らせる。
-  **実APIを叩くテストは「空振りパス」に注意する** —— 取得失敗で対象が0件になっても
+  **実APIを叩くテストは「空振りパス」に注意する** —— 取得失敗で0件になっても
   「未知コードなし」で通ってしまうため、件数が0でないことを先に assert する
+
+### ブラウザモード（`*.browser.test.ts`）
+
+`@vitest/browser` ＋ Playwright（Chromium）＋ `vitest-browser-svelte`。
+初回は `npx playwright install chromium` が必要。
+
+**`.svelte` コンポーネントもここではテストする**（node 側は従来どおりロジックのみ）。
+ただし**本物のブラウザでしか確かめられないことに限る** —— 起動が重いので、
+jsdom でも書けるアサーションを持ち込まない。具体的には:
+
+- `document.activeElement`（フォーカスがどこへ移るか）
+- `getComputedStyle` の解決結果（CSSカスタムプロパティの継承・実際の行の高さ・`em` の比率）
+- `localStorage` を跨いだ再評価での復元
+- Leaflet が実際に生成したマーカーの実寸・重なり順
+
+書くときの注意:
+
+- **`vitest.browser.config.ts` の `compilerOptions.runes` は `vite.config.ts` と揃える。**
+  アプリと違うコンパイラ設定でテストしても意味がない
+- **`vi.resetModules()` は効かない。** ブラウザのモジュールレジストリが URL 単位で永久に
+  キャッシュするため。モジュール初期化の副作用（`pinnedStore` の localStorage 読み込み等）を
+  やり直したいときは `import('./mod.ts?evaluation=N')` とクエリを変えて別 URL にする
+- **ネットワークに出ないのはブラウザモードでも同じ。** 地図のテストは
+  `L.TileLayer.prototype.getTileUrl` を data URI に差し替えてタイル取得を止める。
+  `createTile` ごと置き換えると Leaflet 内部の管理が入らず例外になる
+- `riskStore` は `vi.mock` で writable に置き換える（自動更新とAPI取得を止める）。
+  `pinnedStore` は本物を使う
+- ピン押下後のフォーカス確認は `tick()` 1回では足りない —— ハンドラ自身が
+  `tick()` を待ってからフォーカスを移すため。数回流す
 
 ## Firebase Hostingデプロイ手順
 
@@ -424,6 +513,19 @@ firebase init hosting
 npm run build
 firebase deploy --only hosting
 ```
+
+**通常は `main` への push で GitHub Actions が自動デプロイする**（`.github/workflows/deploy.yml`）。
+デプロイ前に **lint → 型チェック → ロジックテスト → ブラウザテスト → ビルド** を順に通し、
+どれかが落ちればデプロイしない。速いものから並べて失敗を早く出す構成。
+
+- **`npm ci` に `--omit=dev` を付けないこと。** `adapter-static`・`svelte`・`vite` はすべて
+  `devDependencies` にあり、ビルドに必要。`dependencies` は実際にバンドルされる
+  `leaflet` だけにしている（この分離のおかげで `npm audit --omit=dev` が本番ツリーの
+  脆弱性だけを見られる）
+- **`npm run verify:jma` はデプロイ経路に入れないこと。** 実APIを叩くので、
+  気象庁側の不調でデプロイが止まる。あれは人が回して結果を見るもの
+- ブラウザテストは Chromium が必要なので、`npx playwright install --with-deps chromium` を
+  別ステップで実行し、ダウンロードは `~/.cache/ms-playwright` にキャッシュしている
 
 ## TypeScript 型規約
 

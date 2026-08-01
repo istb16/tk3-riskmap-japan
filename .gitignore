@@ -7,6 +7,9 @@ node_modules
 .wrangler
 /.svelte-kit
 /build
+# npm run test:coverage の出力。無視しないと Prettier が生成HTMLを検査して
+# `npm run lint` が落ちる（Prettier は .gitignore を尊重する）
+/coverage
 
 # OS
 .DS_Store
