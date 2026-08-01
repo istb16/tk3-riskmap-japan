@@ -7,6 +7,49 @@ on:
   workflow_dispatch:
 
 jobs:
+  # ブラウザテストは deploy とは別ジョブにして、並列に走らせる。
+  #
+  # **deploy は needs でこのジョブに依存させない = 落ちてもデプロイを止めない。**
+  # 理由は2つ。
+  # (1) Chromium のダウンロードと apt を挟むので、外的要因で失敗しうる経路が増える。
+  #     防災アプリの公開が、UIテストの環境差やネットワークの不調で止まるのは本末転倒。
+  # (2) ブラウザテストが守っているのはフォーカス・ARIA・マーカーの実寸といったUIの質で、
+  #     スコア計算や気象庁データのパースではない。後者は deploy 側の npm test が守る。
+  #
+  # 失敗すればコミットに赤いチェックが付くので気づける。Linux ランナーでの挙動が
+  # 十分に安定したと判断できたら、deploy に `needs: browser-tests` を足してゲートに昇格させる。
+  browser-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # ダウンロードだけキャッシュする（--with-deps の apt はキャッシュされない）
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: playwright-${{ runner.os }}-
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run browser tests
+        run: npm run test:browser
+
   deploy:
     runs-on: ubuntu-latest
     permissions:
@@ -34,27 +77,14 @@ jobs:
       - name: Type check
         run: npm run check
 
-      # npm test はロジック層のみ（vitest.config.ts で browser/live を除外している）
+      # npm test はロジック層のみ（vitest.config.ts で browser/live を除外している）。
+      # スコア計算・気象庁データのパースはここで守る —— 壊れたらデプロイしない
       - name: Run tests
         run: npm test
 
-      # ブラウザ層は Chromium が要るので別ステップ。
-      # ダウンロードだけキャッシュする（--with-deps の apt はキャッシュされない）
-      - name: Cache Playwright browsers
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-          restore-keys: playwright-${{ runner.os }}-
-
-      - name: Install Chromium for browser tests
-        run: npx playwright install --with-deps chromium
-
-      - name: Run browser tests
-        run: npm run test:browser
-
-      # npm run verify:jma（気象庁コード表の追随確認）はここに入れないこと ——
-      # 実APIを叩くので、気象庁側の不調でデプロイが止まる。あれは人が回して結果を見るもの
+      # ブラウザテスト（*.browser.test.ts）はこのジョブに入れない。browser-tests ジョブ参照。
+      # npm run verify:jma もここに入れないこと —— 実APIを叩くので、
+      # 気象庁側の不調でデプロイが止まる。あれは人が回して結果を見るもの
 
       - name: Build
         run: npm run build

@@ -515,17 +515,31 @@ firebase deploy --only hosting
 ```
 
 **通常は `main` への push で GitHub Actions が自動デプロイする**（`.github/workflows/deploy.yml`）。
-デプロイ前に **lint → 型チェック → ロジックテスト → ブラウザテスト → ビルド** を順に通し、
-どれかが落ちればデプロイしない。速いものから並べて失敗を早く出す構成。
+ジョブは2つで、並列に走る。
+
+| ジョブ          | 内容                                                     | デプロイを止めるか |
+| --------------- | -------------------------------------------------------- | ------------------ |
+| `deploy`        | lint → 型チェック → `npm test` → build → Firebase deploy | **止める**         |
+| `browser-tests` | Chromium 用意 → `npm run test:browser`                   | 止めない           |
+
+**`browser-tests` は意図的に `needs` で繋いでいない。** 理由は2つ:
+
+1. Chromium のダウンロードと apt を挟むので、外的要因で失敗しうる経路が増える。
+   **防災アプリの公開が、UIテストの環境差やネットワークの不調で止まるのは本末転倒**
+2. ブラウザテストが守っているのはフォーカス・ARIA・マーカーの実寸といったUIの質で、
+   スコア計算や気象庁データのパースではない。後者は `deploy` 側の `npm test` が守る
+
+失敗すればコミットに赤いチェックが付くので気づける。Linux ランナーでの挙動が十分に
+安定したと判断できたら `deploy` に `needs: browser-tests` を足してゲートに昇格させる。
 
 - **`npm ci` に `--omit=dev` を付けないこと。** `adapter-static`・`svelte`・`vite` はすべて
   `devDependencies` にあり、ビルドに必要。`dependencies` は実際にバンドルされる
   `leaflet` だけにしている（この分離のおかげで `npm audit --omit=dev` が本番ツリーの
   脆弱性だけを見られる）
-- **`npm run verify:jma` はデプロイ経路に入れないこと。** 実APIを叩くので、
+- **`npm run verify:jma` はどちらのジョブにも入れないこと。** 実APIを叩くので、
   気象庁側の不調でデプロイが止まる。あれは人が回して結果を見るもの
-- ブラウザテストは Chromium が必要なので、`npx playwright install --with-deps chromium` を
-  別ステップで実行し、ダウンロードは `~/.cache/ms-playwright` にキャッシュしている
+- Chromium のダウンロードは `~/.cache/ms-playwright` にキャッシュしている
+  （`--with-deps` の apt はキャッシュされない）
 
 ## TypeScript 型規約
 
