@@ -18,6 +18,8 @@
 		SWARM_WINDOW_DAYS,
 	} from '$lib/services/scoringRules';
 	import { getWeatherLabel } from '$lib/api/weather';
+	import { splitRegionName } from '$lib/utils/regionName';
+	import { REGIONS } from '$lib/regions';
 	import type { JmaWarningArea } from '$lib/types';
 	import type { Map as LeafletMap, Marker } from 'leaflet';
 
@@ -190,6 +192,16 @@
 	<title>JAPAN RISK MAP</title>
 </svelte:head>
 
+<!--
+	地域名の描画。都道府県そのものでない地域（北海道8地方・離島10地域）は
+	「釧路・根室（北海道）」のように所属都道府県を添えているので、括弧部分を一段落として描く。
+	ランキング・トップバナー・詳細パネルの3か所で同じ見え方にするため snippet にしている。
+-->
+{#snippet regionName(name: string)}{@const parts =
+		splitRegionName(name)}{parts.base}{#if parts.prefecture}<span class="name-pref"
+			>（{parts.prefecture}）</span
+		>{/if}{/snippet}
+
 <div class="app">
 	<!-- Header -->
 	<header>
@@ -248,7 +260,7 @@
 					<div class="spinner"></div>
 					<p>全国データを取得中</p>
 					<p class="loading-sub">
-						47都道府県＋離島10地域の気象 / 地震 / 津波 / 火山 / 大気質を統合しています
+						{REGIONS.length}地域の気象 / 地震 / 津波 / 火山 / 大気質を統合しています
 					</p>
 				</div>
 			{/if}
@@ -258,7 +270,7 @@
 				<!-- Top Alert Banner -->
 				<div class="top-alert" style="background:{scoreColor(top.riskScore)}">
 					<div class="top-rank">⚠️ #1 最高危険地域</div>
-					<div class="top-name">{top.name}</div>
+					<div class="top-name">{@render regionName(top.name)}</div>
 					<div class="top-score">{top.riskScore}<span class="score-unit">/100</span></div>
 					{#if top.reasons.length > 0}
 						<div class="top-reasons">
@@ -277,7 +289,7 @@
 								</div>
 								<div class="rank-info">
 									<div class="rank-name-row">
-										<span class="rank-name">{city.name}</span>
+										<span class="rank-name">{@render regionName(city.name)}</span>
 										{#if city.riskTypes.length > 0}
 											<span class="rank-types">
 												{#each city.riskTypes as t (t)}
@@ -364,7 +376,7 @@
 						</div>
 					</div>
 					<div class="detail-title-block">
-						<h2 class="detail-city">{$selectedRegion.name}</h2>
+						<h2 class="detail-city">{@render regionName($selectedRegion.name)}</h2>
 						<div class="detail-types">
 							{#each $selectedRegion.riskTypes as t (t)}
 								<span class="type-tag">{riskTypeEmoji(t)} {riskTypeLabel(t)}</span>
@@ -1000,6 +1012,20 @@
 		font-weight: 800;
 		letter-spacing: -0.01em;
 		font-feature-settings: 'palt' 1;
+	}
+
+	/**
+	 * 都道府県そのものでない地域に添える所属都道府県（「釧路・根室（北海道）」の括弧部分）。
+	 * 地域名が主題・都道府県は文脈なので一段落として描く。
+	 * em 指定なのでランキング・トップバナー・詳細パネルの3か所で同じ比率になる。
+	 * 色は指定せず opacity で落とす —— 明るい背景の一覧と、危険度色で塗られた
+	 * トップバナー（白文字）の両方で成立させるため。
+	 */
+	.name-pref {
+		font-size: 0.7em;
+		font-weight: 700;
+		letter-spacing: 0;
+		opacity: 0.65;
 	}
 
 	.rank-reasons {
