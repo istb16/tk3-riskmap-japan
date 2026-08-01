@@ -24,6 +24,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'hokkaido-soya',
 		name: '宗谷（北海道）',
+		kana: 'そうやほっかいどう',
 		lat: 45.4156,
 		lng: 141.673,
 		city: 'Wakkanai',
@@ -34,6 +35,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'hokkaido-kamikawa',
 		name: '上川・留萌（北海道）',
+		kana: 'かみかわるもいほっかいどう',
 		lat: 43.7708,
 		lng: 142.365,
 		city: 'Asahikawa',
@@ -44,6 +46,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'hokkaido-abashiri',
 		name: '網走・北見・紋別（北海道）',
+		kana: 'あばしりきたみもんべつほっかいどう',
 		lat: 44.0206,
 		lng: 144.2735,
 		city: 'Abashiri',
@@ -54,6 +57,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'hokkaido-tokachi',
 		name: '十勝（北海道）',
+		kana: 'とかちほっかいどう',
 		lat: 42.9239,
 		lng: 143.1961,
 		city: 'Obihiro',
@@ -64,6 +68,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'hokkaido-kushiro',
 		name: '釧路・根室（北海道）',
+		kana: 'くしろねむろほっかいどう',
 		lat: 42.985,
 		lng: 144.3817,
 		city: 'Kushiro',
@@ -74,6 +79,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'hokkaido-iburi',
 		name: '胆振・日高（北海道）',
+		kana: 'いぶりひだかほっかいどう',
 		lat: 42.3153,
 		lng: 140.9739,
 		city: 'Muroran',
@@ -84,6 +90,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'hokkaido-ishikari',
 		name: '石狩・空知・後志（北海道）',
+		kana: 'いしかりそらちしりべしほっかいどう',
 		lat: 43.0642,
 		lng: 141.3469,
 		city: 'Sapporo',
@@ -94,6 +101,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'hokkaido-oshima',
 		name: '渡島・檜山（北海道）',
+		kana: 'おしまひやまほっかいどう',
 		lat: 41.7688,
 		lng: 140.7288,
 		city: 'Hakodate',
@@ -104,6 +112,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'aomori',
 		name: '青森',
+		kana: 'あおもり',
 		lat: 40.8246,
 		lng: 140.7406,
 		city: 'Aomori',
@@ -114,6 +123,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'iwate',
 		name: '岩手',
+		kana: 'いわて',
 		lat: 39.7036,
 		lng: 141.1527,
 		city: 'Morioka',
@@ -124,6 +134,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'miyagi',
 		name: '宮城',
+		kana: 'みやぎ',
 		lat: 38.2688,
 		lng: 140.8721,
 		city: 'Sendai',
@@ -134,6 +145,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'akita',
 		name: '秋田',
+		kana: 'あきた',
 		lat: 39.7186,
 		lng: 140.1023,
 		city: 'Akita',
@@ -144,6 +156,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'yamagata',
 		name: '山形',
+		kana: 'やまがた',
 		lat: 38.2404,
 		lng: 140.3636,
 		city: 'Yamagata',
@@ -154,6 +167,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'fukushima',
 		name: '福島',
+		kana: 'ふくしま',
 		lat: 37.7603,
 		lng: 140.4748,
 		city: 'Fukushima',
@@ -164,6 +178,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'ibaraki',
 		name: '茨城',
+		kana: 'いばらき',
 		lat: 36.3416,
 		lng: 140.4469,
 		city: 'Mito',
@@ -174,6 +189,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'tochigi',
 		name: '栃木',
+		kana: 'とちぎ',
 		lat: 36.5548,
 		lng: 139.8836,
 		city: 'Utsunomiya',
@@ -184,6 +200,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'gunma',
 		name: '群馬',
+		kana: 'ぐんま',
 		lat: 36.3911,
 		lng: 139.0608,
 		city: 'Maebashi',
@@ -194,6 +211,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'saitama',
 		name: '埼玉',
+		kana: 'さいたま',
 		lat: 35.8617,
 		lng: 139.6455,
 		city: 'Saitama',
@@ -204,6 +222,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'chiba',
 		name: '千葉',
+		kana: 'ちば',
 		lat: 35.6073,
 		lng: 140.1062,
 		city: 'Chiba',
@@ -214,6 +233,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'tokyo',
 		name: '東京',
+		kana: 'とうきょう',
 		lat: 35.6895,
 		lng: 139.6917,
 		city: 'Tokyo',
@@ -224,6 +244,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'kanagawa',
 		name: '神奈川',
+		kana: 'かながわ',
 		lat: 35.4437,
 		lng: 139.638,
 		city: 'Yokohama',
@@ -234,6 +255,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'niigata',
 		name: '新潟',
+		kana: 'にいがた',
 		lat: 37.9026,
 		lng: 139.0232,
 		city: 'Niigata',
@@ -244,6 +266,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'toyama',
 		name: '富山',
+		kana: 'とやま',
 		lat: 36.6953,
 		lng: 137.2113,
 		city: 'Toyama',
@@ -254,6 +277,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'ishikawa',
 		name: '石川',
+		kana: 'いしかわ',
 		lat: 36.5944,
 		lng: 136.6256,
 		city: 'Kanazawa',
@@ -264,6 +288,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'fukui',
 		name: '福井',
+		kana: 'ふくい',
 		lat: 36.0652,
 		lng: 136.2217,
 		city: 'Fukui',
@@ -274,6 +299,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'yamanashi',
 		name: '山梨',
+		kana: 'やまなし',
 		lat: 35.6635,
 		lng: 138.5685,
 		city: 'Kofu',
@@ -284,6 +310,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'nagano',
 		name: '長野',
+		kana: 'ながの',
 		lat: 36.6486,
 		lng: 138.1948,
 		city: 'Nagano',
@@ -294,6 +321,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'gifu',
 		name: '岐阜',
+		kana: 'ぎふ',
 		lat: 35.4232,
 		lng: 136.7608,
 		city: 'Gifu',
@@ -304,6 +332,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'shizuoka',
 		name: '静岡',
+		kana: 'しずおか',
 		lat: 34.9769,
 		lng: 138.3831,
 		city: 'Shizuoka',
@@ -314,6 +343,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'aichi',
 		name: '愛知',
+		kana: 'あいち',
 		lat: 35.1815,
 		lng: 136.9066,
 		city: 'Nagoya',
@@ -324,6 +354,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'mie',
 		name: '三重',
+		kana: 'みえ',
 		lat: 34.7303,
 		lng: 136.5086,
 		city: 'Tsu',
@@ -334,6 +365,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'shiga',
 		name: '滋賀',
+		kana: 'しが',
 		lat: 35.0042,
 		lng: 135.8685,
 		city: 'Otsu',
@@ -344,6 +376,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'kyoto',
 		name: '京都',
+		kana: 'きょうと',
 		lat: 35.0116,
 		lng: 135.7681,
 		city: 'Kyoto',
@@ -354,6 +387,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'osaka',
 		name: '大阪',
+		kana: 'おおさか',
 		lat: 34.6937,
 		lng: 135.5023,
 		city: 'Osaka',
@@ -364,6 +398,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'hyogo',
 		name: '兵庫',
+		kana: 'ひょうご',
 		lat: 34.6901,
 		lng: 135.1956,
 		city: 'Kobe',
@@ -374,6 +409,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'nara',
 		name: '奈良',
+		kana: 'なら',
 		lat: 34.6851,
 		lng: 135.805,
 		city: 'Nara',
@@ -384,6 +420,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'wakayama',
 		name: '和歌山',
+		kana: 'わかやま',
 		lat: 34.2304,
 		lng: 135.1708,
 		city: 'Wakayama',
@@ -394,6 +431,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'tottori',
 		name: '鳥取',
+		kana: 'とっとり',
 		lat: 35.5013,
 		lng: 134.2351,
 		city: 'Tottori',
@@ -404,6 +442,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'shimane',
 		name: '島根',
+		kana: 'しまね',
 		lat: 35.4723,
 		lng: 133.0505,
 		city: 'Matsue',
@@ -414,6 +453,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'okayama',
 		name: '岡山',
+		kana: 'おかやま',
 		lat: 34.6551,
 		lng: 133.9195,
 		city: 'Okayama',
@@ -424,6 +464,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'hiroshima',
 		name: '広島',
+		kana: 'ひろしま',
 		lat: 34.3853,
 		lng: 132.4553,
 		city: 'Hiroshima',
@@ -434,6 +475,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'yamaguchi',
 		name: '山口',
+		kana: 'やまぐち',
 		lat: 34.186,
 		lng: 131.4706,
 		city: 'Yamaguchi',
@@ -444,6 +486,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'tokushima',
 		name: '徳島',
+		kana: 'とくしま',
 		lat: 34.0657,
 		lng: 134.5592,
 		city: 'Tokushima',
@@ -454,6 +497,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'kagawa',
 		name: '香川',
+		kana: 'かがわ',
 		lat: 34.3403,
 		lng: 134.0433,
 		city: 'Takamatsu',
@@ -464,6 +508,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'ehime',
 		name: '愛媛',
+		kana: 'えひめ',
 		lat: 33.8416,
 		lng: 132.7657,
 		city: 'Matsuyama',
@@ -474,6 +519,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'kochi',
 		name: '高知',
+		kana: 'こうち',
 		lat: 33.5597,
 		lng: 133.5311,
 		city: 'Kochi',
@@ -484,6 +530,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'fukuoka',
 		name: '福岡',
+		kana: 'ふくおか',
 		lat: 33.5904,
 		lng: 130.4017,
 		city: 'Fukuoka',
@@ -494,6 +541,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'saga',
 		name: '佐賀',
+		kana: 'さが',
 		lat: 33.2494,
 		lng: 130.2988,
 		city: 'Saga',
@@ -504,6 +552,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'nagasaki',
 		name: '長崎',
+		kana: 'ながさき',
 		lat: 32.7503,
 		lng: 129.8777,
 		city: 'Nagasaki',
@@ -514,6 +563,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'kumamoto',
 		name: '熊本',
+		kana: 'くまもと',
 		lat: 32.7898,
 		lng: 130.7417,
 		city: 'Kumamoto',
@@ -524,6 +574,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'oita',
 		name: '大分',
+		kana: 'おおいた',
 		lat: 33.2382,
 		lng: 131.6126,
 		city: 'Oita',
@@ -534,6 +585,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'miyazaki',
 		name: '宮崎',
+		kana: 'みやざき',
 		lat: 31.9111,
 		lng: 131.4239,
 		city: 'Miyazaki',
@@ -544,6 +596,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'kagoshima',
 		name: '鹿児島',
+		kana: 'かごしま',
 		lat: 31.5602,
 		lng: 130.5581,
 		city: 'Kagoshima',
@@ -554,6 +607,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'okinawa',
 		name: '沖縄',
+		kana: 'おきなわ',
 		lat: 26.2124,
 		lng: 127.6809,
 		city: 'Naha',
@@ -564,6 +618,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'izu-ogasawara',
 		name: '伊豆・小笠原諸島（東京）',
+		kana: 'いずおがさわらしょとうとうきょう',
 		lat: 33.1067,
 		lng: 139.7853,
 		city: 'Hachijojima',
@@ -574,6 +629,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'sado',
 		name: '佐渡（新潟）',
+		kana: 'さどにいがた',
 		lat: 38.0182,
 		lng: 138.3683,
 		city: 'Sado',
@@ -584,6 +640,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'oki',
 		name: '隠岐（島根）',
+		kana: 'おきしまね',
 		lat: 36.2094,
 		lng: 133.3225,
 		city: 'Oki',
@@ -594,6 +651,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'tsushima',
 		name: '壱岐・対馬（長崎）',
+		kana: 'いきつしまながさき',
 		lat: 34.2031,
 		lng: 129.2872,
 		city: 'Tsushima',
@@ -604,6 +662,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'goto',
 		name: '五島（長崎）',
+		kana: 'ごとうながさき',
 		lat: 32.6956,
 		lng: 128.841,
 		city: 'Goto',
@@ -614,6 +673,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'tanegashima',
 		name: '種子島・屋久島（鹿児島）',
+		kana: 'たねがしまやくしまかごしま',
 		lat: 30.7325,
 		lng: 130.9944,
 		city: 'Nishinoomote',
@@ -624,6 +684,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'amami',
 		name: '奄美（鹿児島）',
+		kana: 'あまみかごしま',
 		lat: 28.3775,
 		lng: 129.4936,
 		city: 'Amami',
@@ -634,6 +695,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'daito',
 		name: '大東島（沖縄）',
+		kana: 'だいとうじまおきなわ',
 		lat: 25.8283,
 		lng: 131.2317,
 		city: 'Minamidaito',
@@ -644,6 +706,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'miyako',
 		name: '宮古島（沖縄）',
+		kana: 'みやこじまおきなわ',
 		lat: 24.8058,
 		lng: 125.2811,
 		city: 'Miyakojima',
@@ -654,6 +717,7 @@ export const REGIONS: Region[] = [
 	{
 		id: 'yaeyama',
 		name: '八重山（沖縄）',
+		kana: 'やえやまおきなわ',
 		lat: 24.3406,
 		lng: 124.1553,
 		city: 'Ishigaki',

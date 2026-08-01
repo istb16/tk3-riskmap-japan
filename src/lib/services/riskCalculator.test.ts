@@ -132,6 +132,7 @@ const daysAgo = (d: number) => Date.now() - d * DAY_MS;
 const TOKYO: Region = {
 	id: 'tokyo',
 	name: '東京',
+	kana: 'とうきょう',
 	lat: 35.6895,
 	lng: 139.6917,
 	city: 'Tokyo',

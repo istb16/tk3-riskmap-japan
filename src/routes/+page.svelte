@@ -19,8 +19,9 @@
 	} from '$lib/services/scoringRules';
 	import { getWeatherLabel } from '$lib/api/weather';
 	import { splitRegionName } from '$lib/utils/regionName';
+	import { buildSearchIndex, matchesSearch, normalizeForSearch } from '$lib/utils/regionFilter';
 	import { REGIONS } from '$lib/regions';
-	import type { JmaWarningArea } from '$lib/types';
+	import type { JmaWarningArea, RegionRisk } from '$lib/types';
 	import type { Map as LeafletMap, Marker } from 'leaflet';
 
 	let mapEl: HTMLDivElement = $state()!;
@@ -60,6 +61,18 @@
 
 	let waveColor = $derived(scoreColor($rankedRegions[0]?.riskScore ?? 0));
 
+	// 地域フィルタ。順位番号は絞り込み前に確定させてから絞る —— 番号は全国順位を指すので、
+	// 絞り込みで振り直してはいけない（スコアは絶対尺度なので、23点の地域に🥇が付くと
+	// 「注意」の色なのに1位という矛盾した表示になる）。
+	const SEARCH_INDEX = buildSearchIndex(REGIONS);
+	let filterQuery = $state('');
+	let normalizedQuery = $derived(normalizeForSearch(filterQuery));
+	let rankedWithRank = $derived($rankedRegions.map((region, i) => ({ region, rank: i + 1 })));
+	let visibleRanked = $derived(
+		rankedWithRank.filter(({ region }) => matchesSearch(SEARCH_INDEX, region.id, normalizedQuery))
+	);
+	let filtering = $derived(normalizedQuery !== '');
+
 	const RISK_TYPE: Record<string, { emoji: string; label: string }> = {
 		weather: { emoji: '🌧️', label: '気象' },
 		snow: { emoji: '❄️', label: '大雪' },
@@ -96,17 +109,24 @@
 			maxZoom: 18,
 		}).addTo(map);
 
-		updateMarkers(L);
+		updateMarkers(L, visibleRanked);
 	}
 
-	function updateMarkers(L: typeof import('leaflet')): void {
+	function updateMarkers(
+		L: typeof import('leaflet'),
+		targets: { region: RegionRisk; rank: number }[]
+	): void {
 		markers.forEach((m) => m.remove());
 		markers = [];
 
 		if (!map) return;
 		const currentMap = map;
 
-		$rankedRegions.forEach((region) => {
+		// 絞り込みは地図にも効かせる（デスクトップではランキングと地図が横に並んで同時に
+		// 見えるため、リストが8件で地図が64マーカーだと同じ画面で食い違う）。
+		// ズーム・中心は触らない —— フィルタは1打鍵ごとに変わるので fitBounds を掛けると
+		// 変換途中に地図が日本全国を飛び回る。
+		targets.forEach(({ region }) => {
 			if (region.riskScore === 0) return;
 			const band = riskBand(region.riskScore);
 			const size = band.markerSizePx;
@@ -157,10 +177,13 @@
 	});
 
 	$effect(() => {
-		// $rankedRegions を条件の前に読み取ることで、map が null でも依存関係として追跡させる
-		const currentRegions = $rankedRegions;
-		if (map && currentRegions.length > 0) {
-			import('leaflet').then(({ default: L }) => updateMarkers(L));
+		// 依存関係として追跡させるため、条件の前に読み取る（map が null のときも必要）。
+		// 描画対象は絞り込み後、貼り直しの判定はデータ取得済みかどうかで行う ——
+		// フィルタが0件のときも updateMarkers を通さないと、前のマーカーが地図に残る。
+		const currentRegions = visibleRanked;
+		const dataLoaded = $rankedRegions.length > 0;
+		if (map && dataLoaded) {
+			import('leaflet').then(({ default: L }) => updateMarkers(L, currentRegions));
 		}
 	});
 
@@ -251,6 +274,42 @@
 		<div class="error-banner">{$error}</div>
 	{/if}
 
+	<!--
+		地域フィルタ。両パネルの外に置いている —— 絞り込みは地図にも効くので、入力欄は
+		どちらか一方のパネルの持ち物ではない。ranking-panel の中に置くと、モバイルで
+		地図タブに切り替えたときに入力欄ごと消えるのにフィルタは効いたままになり、
+		マーカーが少ない理由も解除する手段も画面から失われる。
+	-->
+	<div class="filter-bar">
+		<div class="filter-field">
+			<span class="filter-icon" aria-hidden="true">🔍</span>
+			<input
+				class="filter-input"
+				type="search"
+				bind:value={filterQuery}
+				placeholder="地域名で絞り込む（例: 北海道 / くしろ）"
+				aria-label="地域名で絞り込む"
+				onkeydown={(e) => e.key === 'Escape' && (filterQuery = '')}
+			/>
+			{#if filtering}
+				<button class="filter-clear" onclick={() => (filterQuery = '')} aria-label="絞り込みを解除"
+					>✕</button
+				>
+			{/if}
+		</div>
+		<!--
+			件数は常に出す。変換途中で件数が 64 → 12 → 1 と連続的に動くのが見えていれば、
+			0件になっても「入力の途中」だと分かる。
+		-->
+		<span class="filter-count" aria-live="polite">
+			{#if visibleRanked.length === 0}
+				該当なし
+			{:else}
+				{visibleRanked.length}地域
+			{/if}
+		</span>
+	</div>
+
 	<!-- Main Content Area -->
 	<div class="content-area">
 		<!-- Ranking Panel -->
@@ -279,13 +338,18 @@
 					{/if}
 				</div>
 
-				<!-- Rank List -->
+				<!--
+					Rank List。番号は絞り込み前に確定した全国順位（rank）を使う。
+					メダルも全国3位以内にだけ付く —— 絞り込み内で振り直すと、スコア23点の地域に
+					🥇が付いて「注意」の黄色と矛盾する。
+					「北海道内で何位か」は並び順が既に答えているので番号を振り直す必要はない。
+				-->
 				<ol class="rank-list">
-					{#each $rankedRegions as city, i (city.name)}
+					{#each visibleRanked as { region: city, rank } (city.name)}
 						<li>
 							<button class="rank-item" onclick={() => selectedRegion.set(city)}>
 								<div class="rank-num" style="color:{scoreColor(city.riskScore)}">
-									{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
+									{rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`}
 								</div>
 								<div class="rank-info">
 									<div class="rank-name-row">
@@ -332,6 +396,13 @@
 						</li>
 					{/each}
 				</ol>
+				<!--
+					0件は失敗ではなく入力の途中なので、静かな1行に留める。
+					アイコン付きの空状態にすると打鍵ごとに画面が跳ねる。
+				-->
+				{#if visibleRanked.length === 0}
+					<p class="rank-empty">「{filterQuery}」に一致する地域がありません</p>
+				{/if}
 			{/if}
 		</section>
 
@@ -766,6 +837,90 @@
 		display: flex;
 		background: var(--surface);
 		border-bottom: 1px solid var(--border);
+	}
+
+	/* 地域フィルタ。両パネルの外にあるので横幅いっぱい（絞り込みは地図にも効く） */
+	.filter-bar {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 8px 12px;
+		background: var(--surface);
+		border-bottom: 1px solid var(--border);
+	}
+
+	.filter-field {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 0 10px;
+		background: var(--bg);
+		border: 1px solid var(--border);
+		border-radius: 8px;
+	}
+
+	.filter-field:focus-within {
+		border-color: var(--border-hi);
+	}
+
+	.filter-icon {
+		font-size: 13px;
+		opacity: 0.6;
+		flex-shrink: 0;
+	}
+
+	.filter-input {
+		flex: 1;
+		min-width: 0;
+		padding: 8px 0;
+		border: none;
+		background: transparent;
+		color: var(--text);
+		/* 16px 未満にすると iOS Safari がフォーカス時にページを勝手にズームする。
+			プレースホルダが末尾で切れるのは許容し、ズームを避けるほうを採る */
+		font-size: 16px;
+		font-family: inherit;
+	}
+
+	.filter-input:focus {
+		outline: none;
+	}
+
+	/* type=search の既定の×は表示が環境依存なので消して、自前のボタンに揃える */
+	.filter-input::-webkit-search-cancel-button {
+		display: none;
+	}
+
+	.filter-clear {
+		flex-shrink: 0;
+		border: none;
+		background: transparent;
+		color: var(--text-2);
+		font-size: 13px;
+		cursor: pointer;
+		padding: 4px;
+		line-height: 1;
+	}
+
+	.filter-clear:hover {
+		color: var(--text);
+	}
+
+	.filter-count {
+		flex-shrink: 0;
+		font-size: 12px;
+		font-weight: 700;
+		color: var(--text-2);
+		font-variant-numeric: tabular-nums;
+	}
+
+	.rank-empty {
+		padding: 20px 12px;
+		text-align: center;
+		font-size: 13px;
+		color: var(--text-2);
 	}
 
 	.tab-btn {
