@@ -10,6 +10,14 @@
 		stopAutoRefresh,
 	} from '$lib/stores/riskStore';
 	import { formatDateTime } from '$lib/services/riskCalculator';
+	import {
+		SHINDO_LABELS,
+		TSUNAMI_LABELS,
+		riskBand,
+		RISK_BANDS,
+		SWARM_WINDOW_DAYS,
+	} from '$lib/services/scoringRules';
+	import { getWeatherLabel } from '$lib/api/weather';
 	import type { JmaWarningArea } from '$lib/types';
 	import type { Map as LeafletMap, Marker } from 'leaflet';
 
@@ -33,28 +41,37 @@
 	const SEISMO_POINTS =
 		'0,14 18,14 23,7 28,21 33,14 55,14 60,3 65,25 70,12 75,20 80,14 110,14 115,9 120,19 125,14 160,14 165,5 170,23 175,8 180,22 185,14 215,14 220,12 225,16 230,14 260,14 265,4 270,24 275,11 280,17 285,14 315,14 320,8 325,20 330,14 365,14 370,6 375,22 380,10 385,18 390,14 420,14 425,9 430,19 435,14 460,14 465,3 470,25 475,8 480,20 485,14 510,14 515,11 520,17 525,14 555,14 560,7 565,21 570,14 590,14 600,14';
 
-	let waveColor = $derived(scoreColor($rankedRegions[0]?.riskScore ?? 0));
+	// 帯の定義は scoringRules.ts（気象庁の警戒レベルに対応）に集約している
+	const scoreColor = (score: number) => `var(${riskBand(score).colorVar})`;
 
-	function scoreColor(score: number): string {
-		if (score >= 61) return 'var(--danger)';
-		if (score >= 31) return 'var(--caution)';
-		return 'var(--safe)';
-	}
+	/**
+	 * 凡例。マーカーと同じ比率でドットの大小をつけ、サイズが危険度を表すことを凡例自体で示す。
+	 * 帯の範囲・色・サイズはすべて RISK_BANDS から導く（UIに数値を持たせない）。
+	 */
+	const legendItems = RISK_BANDS.map((band, i) => ({
+		label: band.label,
+		colorVar: band.colorVar,
+		dotPx: Math.round(band.markerSizePx / 4),
+		// RISK_BANDS は高い順なので、ひとつ上の帯の下限-1 がこの帯の上限になる
+		range: i === 0 ? `${band.min}–100` : `${band.min}–${RISK_BANDS[i - 1].min - 1}`,
+	})).reverse();
+
+	let waveColor = $derived(scoreColor($rankedRegions[0]?.riskScore ?? 0));
 
 	const RISK_TYPE: Record<string, { emoji: string; label: string }> = {
 		weather: { emoji: '🌧️', label: '気象' },
+		snow: { emoji: '❄️', label: '大雪' },
 		earthquake: { emoji: '🏔️', label: '地震' },
+		tsunami: { emoji: '🌊', label: '津波' },
+		volcano: { emoji: '🌋', label: '火山' },
 		heat: { emoji: '🔥', label: '熱波' },
+		cold: { emoji: '🥶', label: '寒波' },
 		air: { emoji: '💨', label: '大気' },
 	};
 	const riskTypeEmoji = (t: string) => RISK_TYPE[t]?.emoji ?? '⚠️';
 	const riskTypeLabel = (t: string) => RISK_TYPE[t]?.label ?? '警報';
 
-	function scoreLabel(score: number): string {
-		if (score >= 61) return '危険';
-		if (score >= 31) return '注意';
-		return '安全';
-	}
+	const scoreLabel = (score: number) => riskBand(score).label;
 
 	function formatTime(ts: number): string {
 		return new Date(ts).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
@@ -89,22 +106,29 @@
 
 		$rankedRegions.forEach((region) => {
 			if (region.riskScore === 0) return;
-			const color = scoreColor(region.riskScore);
+			const band = riskBand(region.riskScore);
+			const size = band.markerSizePx;
 			const icon = L.divIcon({
 				className: '',
 				html: `<div style="
-					width:40px;height:40px;border-radius:50%;
-					background:${color};border:2px solid rgba(255,255,255,0.25);
+					width:${size}px;height:${size}px;border-radius:50%;
+					background:var(${band.colorVar});border:2px solid rgba(255,255,255,0.25);
 					box-shadow:0 2px 8px rgba(0,0,0,0.25);
 					display:flex;align-items:center;justify-content:center;
-					color:#ffffff;font-weight:700;font-size:12px;font-family:monospace;
+					color:#ffffff;font-weight:700;font-size:${band.markerFontPx}px;font-family:monospace;
 					cursor:pointer;
 				">${region.riskScore}</div>`,
-				iconSize: [40, 40],
-				iconAnchor: [20, 20],
+				iconSize: [size, size],
+				iconAnchor: [size / 2, size / 2],
 			});
 
-			const marker = L.marker([region.lat, region.lng], { icon })
+			const marker = L.marker([region.lat, region.lng], {
+				icon,
+				// Leaflet の既定の重なり順は緯度（南が上）なので、危険度で明示的に上書きする。
+				// 関東は中心間が画面上4.9pxしか離れておらず円が重なるため、
+				// これがないと小さい平穏の円が大きい危険の円の上に乗る。
+				zIndexOffset: region.riskScore * 1000,
+			})
 				.addTo(currentMap)
 				.on('click', () => selectedRegion.set(region));
 
@@ -139,7 +163,7 @@
 	});
 
 	function shareTwitter() {
-		const text = `今、日本で最も危険な都道府県は「${$rankedRegions[0]?.name ?? ''}」！スコア${$rankedRegions[0]?.riskScore ?? 0}（${$rankedRegions[0]?.reasons[0] ?? ''}）\n#日本危険マップ #リアルタイム防災`;
+		const text = `今、日本で最も危険な地域は「${$rankedRegions[0]?.name ?? ''}」！スコア${$rankedRegions[0]?.riskScore ?? 0}（${$rankedRegions[0]?.reasons[0] ?? ''}）\n#日本危険マップ #リアルタイム防災`;
 		const url = encodeURIComponent(location.href);
 		window.open(
 			`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${url}`,
@@ -223,7 +247,9 @@
 				<div class="loading-screen">
 					<div class="spinner"></div>
 					<p>全国データを取得中</p>
-					<p class="loading-sub">気象 / 地震 / 大気質データを統合しています</p>
+					<p class="loading-sub">
+						47都道府県＋離島10地域の気象 / 地震 / 津波 / 火山 / 大気質を統合しています
+					</p>
 				</div>
 			{/if}
 
@@ -236,7 +262,7 @@
 					<div class="top-score">{top.riskScore}<span class="score-unit">/100</span></div>
 					{#if top.reasons.length > 0}
 						<div class="top-reasons">
-							{#each top.reasons as r (r)}<span class="reason-chip">{r}</span>{/each}
+							{#each top.reasons as r, i (i)}<span class="reason-chip">{r}</span>{/each}
 						</div>
 					{/if}
 				</div>
@@ -272,7 +298,7 @@
 									</div>
 									{#if city.reasons.length > 0}
 										<div class="rank-reasons">
-											{#each city.reasons as r (r)}<span>{r}</span>{/each}
+											{#each city.reasons as r, i (i)}<span>{r}</span>{/each}
 										</div>
 									{/if}
 								</div>
@@ -301,15 +327,15 @@
 		<div class="map-panel" class:tab-active={activeTab === 'map'}>
 			<div bind:this={mapEl} class="leaflet-map"></div>
 			<div class="map-legend">
-				<span class="legend-item"
-					><span class="legend-dot" style="background:#16A34A"></span>安全 0–30</span
-				>
-				<span class="legend-item"
-					><span class="legend-dot" style="background:#B45309"></span>注意 31–60</span
-				>
-				<span class="legend-item"
-					><span class="legend-dot" style="background:#DC2626"></span>危険 61–100</span
-				>
+				{#each legendItems as item (item.label)}
+					<span class="legend-item">
+						<span
+							class="legend-dot"
+							style="background:var({item.colorVar}); width:{item.dotPx}px; height:{item.dotPx}px"
+						></span>{item.label}
+						{item.range}
+					</span>
+				{/each}
 			</div>
 		</div>
 	</div>
@@ -361,8 +387,10 @@
 										<span
 											class="jma-chip"
 											class:jma-chip-special={w.includes('特別警報')}
-											class:jma-chip-warning={!w.includes('特別警報') && w.includes('警報')}
-											>{w}</span
+											class:jma-chip-danger={w.includes('危険警報')}
+											class:jma-chip-warning={!w.includes('特別警報') &&
+												!w.includes('危険警報') &&
+												w.includes('警報')}>{w}</span
 										>
 									{/each}
 								</div>
@@ -371,11 +399,37 @@
 					</div>
 				{/if}
 
+				{#if $selectedRegion.details.tsunami && $selectedRegion.details.tsunami.level !== 'none'}
+					<div class="hazard-section hazard-tsunami">
+						<span class="hazard-icon">🌊</span>
+						<div class="hazard-body">
+							<span class="hazard-title"
+								>{TSUNAMI_LABELS[$selectedRegion.details.tsunami.level]}</span
+							>
+							{#if $selectedRegion.details.tsunami.areaName}
+								<span class="hazard-sub">{$selectedRegion.details.tsunami.areaName}</span>
+							{/if}
+						</div>
+					</div>
+				{/if}
+
+				{#if $selectedRegion.details.volcano && $selectedRegion.details.volcano.alerts.length > 0}
+					<div class="hazard-section hazard-volcano">
+						<span class="hazard-icon">🌋</span>
+						<div class="hazard-body">
+							<span class="hazard-title">噴火警報</span>
+							{#each $selectedRegion.details.volcano.alerts as alert (alert.name)}
+								<span class="hazard-sub">{alert.name} — {alert.levelText}</span>
+							{/each}
+						</div>
+					</div>
+				{/if}
+
 				{#if $selectedRegion.scoreItems.length > 0}
 					<div class="detail-section">
 						<h3 class="section-label">スコア内訳</h3>
 						<div class="breakdown-table">
-							{#each $selectedRegion.scoreItems as item (item.label)}
+							{#each $selectedRegion.scoreItems as item, i (i)}
 								<div class="breakdown-row">
 									<span class="breakdown-label">{item.label}</span>
 									<span class="breakdown-pts">+{item.points}</span>
@@ -409,23 +463,40 @@
 					<h3 class="section-label">観測データ</h3>
 					<div class="obs-grid">
 						{#if $selectedRegion.details.weather}
+							{@const w = $selectedRegion.details.weather}
 							<div class="obs-cell">
 								<span class="obs-label">🌡 気温</span>
-								<span class="obs-val"
-									>{$selectedRegion.details.weather.temperature.toFixed(1)}<small>℃</small></span
-								>
+								<span class="obs-val">{w.temperature.toFixed(1)}<small>℃</small></span>
+							</div>
+							<div class="obs-cell">
+								<span class="obs-label">🥵 体感温度</span>
+								<span class="obs-val">{w.apparentTemperature.toFixed(1)}<small>℃</small></span>
 							</div>
 							<div class="obs-cell">
 								<span class="obs-label">🌧 降水量</span>
-								<span class="obs-val"
-									>{$selectedRegion.details.weather.precipitation.toFixed(1)}<small>mm</small></span
-								>
+								<span class="obs-val">{w.precipitation.toFixed(1)}<small>mm/h</small></span>
 							</div>
 							<div class="obs-cell">
-								<span class="obs-label">💨 風速</span>
+								<span class="obs-label">💨 風速 / 突風</span>
 								<span class="obs-val"
-									>{$selectedRegion.details.weather.windSpeed.toFixed(0)}<small>km/h</small></span
+									>{w.windSpeed.toFixed(0)}<small>/{w.windGusts.toFixed(0)} km/h</small></span
 								>
+							</div>
+							{#if w.snowfall > 0}
+								<div class="obs-cell">
+									<span class="obs-label">🌨 降雪量</span>
+									<span class="obs-val">{w.snowfall.toFixed(1)}<small>cm/h</small></span>
+								</div>
+							{/if}
+							{#if w.snowDepthCm > 0}
+								<div class="obs-cell">
+									<span class="obs-label">❄ 積雪深</span>
+									<span class="obs-val">{w.snowDepthCm.toFixed(0)}<small>cm</small></span>
+								</div>
+							{/if}
+							<div class="obs-cell">
+								<span class="obs-label">☁ 天気</span>
+								<span class="obs-val obs-val-text">{getWeatherLabel(w.weatherCode)}</span>
 							</div>
 						{/if}
 						{#if $selectedRegion.details.air?.pm25 !== null && $selectedRegion.details.air?.pm25 !== undefined}
@@ -437,27 +508,38 @@
 							</div>
 						{/if}
 					</div>
-					{#if $selectedRegion.details.earthquake?.magnitude}
+					{#if $selectedRegion.details.earthquake?.shindo || $selectedRegion.details.earthquake?.recentQuakeCount}
+						{@const eq = $selectedRegion.details.earthquake}
 						<div class="eq-card">
 							<div class="eq-row">
 								<span class="eq-label">🏔 地震</span>
-								<span class="eq-mag"
-									>M{$selectedRegion.details.earthquake.magnitude.toFixed(1)}</span
-								>
-								<span class="eq-info"
-									>深さ {$selectedRegion.details.earthquake.depth?.toFixed(0) ?? '—'}km</span
-								>
-								{#if $selectedRegion.details.earthquake.distanceKm !== null}
-									<span class="eq-info"
-										>震源 {Math.round($selectedRegion.details.earthquake.distanceKm ?? 0)}km</span
-									>
+								{#if eq.shindo}
+									<span class="eq-shindo">{SHINDO_LABELS[eq.shindo]}</span>
+									{#if eq.shindoSource === 'estimated'}
+										<span class="eq-badge">推定値</span>
+									{/if}
+								{/if}
+								{#if eq.magnitude !== null}
+									<span class="eq-info">M{eq.magnitude.toFixed(1)}</span>
+								{/if}
+								{#if eq.depth !== null}
+									<span class="eq-info">深さ {eq.depth.toFixed(0)}km</span>
+								{/if}
+								{#if eq.distanceKm !== null}
+									<span class="eq-info">震源 {Math.round(eq.distanceKm)}km</span>
 								{/if}
 							</div>
-							{#if $selectedRegion.details.earthquake.time}
-								<span class="eq-time"
-									>{formatDateTime($selectedRegion.details.earthquake.time)}</span
-								>
+							{#if eq.place}
+								<span class="eq-info">{eq.place}</span>
 							{/if}
+							<div class="eq-row">
+								{#if eq.time}
+									<span class="eq-time">{formatDateTime(eq.time)}</span>
+								{/if}
+								{#if eq.recentQuakeCount > 0}
+									<span class="eq-time">{SWARM_WINDOW_DAYS}日間の観測 {eq.recentQuakeCount}回</span>
+								{/if}
+							</div>
 						</div>
 					{/if}
 				</div>
@@ -495,7 +577,8 @@
 		--border: #c8d8e8;
 		--border-hi: #a0bad0;
 		--safe: #16a34a;
-		--caution: #b45309;
+		--caution: #ca8a04;
+		--alert: #ea580c;
 		--danger: #dc2626;
 		--text: #0a1828;
 		--text-2: #445e78;
@@ -1012,8 +1095,7 @@
 		gap: 5px;
 	}
 	.legend-dot {
-		width: 8px;
-		height: 8px;
+		/* サイズはマーカーと同じ比率で算出してインラインで与える */
 		border-radius: 50%;
 		flex-shrink: 0;
 	}
@@ -1355,6 +1437,13 @@
 		border-color: #fde68a;
 	}
 
+	/* 危険警報（警戒レベル4相当）— 警報と特別警報の中間 */
+	.jma-chip-danger {
+		background: #ffedd5;
+		color: #9a3412;
+		border-color: #fdba74;
+	}
+
 	/* ─── 観測データ grid ─── */
 	.obs-grid {
 		display: grid;
@@ -1391,6 +1480,64 @@
 		margin-left: 1px;
 	}
 
+	.obs-val-text {
+		font-size: 16px;
+	}
+
+	/* ─── 津波・火山の警報セクション ─── */
+	.hazard-section {
+		display: flex;
+		align-items: flex-start;
+		gap: 10px;
+		border-radius: 8px;
+		padding: 11px 13px;
+		margin-bottom: 12px;
+		border: 1px solid;
+	}
+
+	.hazard-tsunami {
+		background: #eff6ff;
+		border-color: #bfdbfe;
+	}
+
+	.hazard-volcano {
+		background: #fef2f2;
+		border-color: #fecaca;
+	}
+
+	.hazard-icon {
+		font-size: 18px;
+		line-height: 1.2;
+		flex-shrink: 0;
+	}
+
+	.hazard-body {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		min-width: 0;
+	}
+
+	.hazard-title {
+		font-size: 14px;
+		font-weight: 800;
+		letter-spacing: -0.01em;
+	}
+
+	.hazard-tsunami .hazard-title {
+		color: #1e40af;
+	}
+
+	.hazard-volcano .hazard-title {
+		color: #991b1b;
+	}
+
+	.hazard-sub {
+		font-size: 12px;
+		color: var(--text-2);
+		line-height: 1.4;
+	}
+
 	/* ─── 地震カード ─── */
 	.eq-card {
 		background: var(--bg);
@@ -1415,13 +1562,22 @@
 		color: var(--text-2);
 	}
 
-	.eq-mag {
-		font-family: var(--mono);
+	.eq-shindo {
 		font-size: 22px;
-		font-weight: 700;
-		font-variant-numeric: tabular-nums;
+		font-weight: 800;
 		color: var(--danger);
 		letter-spacing: -0.02em;
+		font-feature-settings: 'palt' 1;
+	}
+
+	.eq-badge {
+		font-size: 10px;
+		font-weight: 700;
+		color: var(--text-2);
+		border: 1px solid var(--border-hi);
+		border-radius: 3px;
+		padding: 1px 5px;
+		letter-spacing: 0.04em;
 	}
 
 	.eq-info {
