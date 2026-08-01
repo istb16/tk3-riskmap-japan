@@ -5,6 +5,7 @@ import type { Writable } from 'svelte/store';
 import { REGIONS } from '$lib/regions';
 import { pinnedIds } from '$lib/stores/pinnedStore';
 import { riskBand } from '$lib/services/scoringRules';
+import { APP_VERSION } from '$lib/utils/buildInfo';
 import type { RegionRisk } from '$lib/types';
 import Page from './+page.svelte';
 
@@ -46,6 +47,7 @@ leaflet.TileLayer.prototype.getTileUrl = () => TRANSPARENT_PNG;
 
 const riskStore = await import('$lib/stores/riskStore');
 const ranked = riskStore.rankedRegions as unknown as Writable<RegionRisk[]>;
+const lastUpdated = riskStore.lastUpdated as unknown as Writable<number | null>;
 const pinned = pinnedIds as Writable<ReadonlySet<string>>;
 
 function makeRisk(id: string, riskScore: number): RegionRisk {
@@ -99,6 +101,7 @@ async function flush(times = 4) {
 beforeEach(() => {
 	localStorage.clear();
 	pinned.set(new Set());
+	lastUpdated.set(null);
 	ranked.set(FIXTURES);
 });
 
@@ -191,6 +194,48 @@ describe('地域フィルタ', () => {
 		await setFilter('東京');
 		expect(rankNames()).toEqual(['東京']);
 		expect(banner()).toBe('熊本');
+	});
+});
+
+/**
+ * ヘッダーのビルド情報。どのデプロイが公開されているかを画面から判別するために出す。
+ * `define` が各設定に渡っていないと参照時点で落ちるので、描画できること自体が検査になる。
+ */
+describe('ヘッダーのビルド情報', () => {
+	it('サイト名のすぐ右にバージョンとビルド日を出す', async () => {
+		await render(Page);
+		const text = $('.build-info')?.textContent?.trim() ?? '';
+		expect(text).toMatch(/^\(v\d+\.\d+\.\d+ at \d{4}\/\d{2}\/\d{2}\)$/);
+		expect(text).toContain(`v${APP_VERSION}`);
+
+		// h1 の直後の兄弟であること（タイトルから離れると何のバージョンか読めない）
+		expect($('h1')?.nextElementSibling).toBe($('.build-info'));
+	});
+
+	// どちらも時刻なので、素で並べるとどちらが何か読めない
+	it('データ取得時刻と役割が区別できる', async () => {
+		lastUpdated.set(Date.parse('2026-08-02T03:04:00+09:00'));
+		await render(Page);
+		const build = $('.build-info');
+		const status = $('.status-text');
+		expect(status).not.toBeNull();
+
+		expect(build?.getAttribute('title')).toContain('ビルド日時');
+		expect(status?.textContent?.trim()).toMatch(/^Updated: \d{2}:\d{2}$/);
+		expect(status?.getAttribute('title')).toBe('データ取得時刻');
+		// 同じ文字列が並んで見分けられない状態になっていない
+		expect(build?.textContent?.trim()).not.toBe(status?.textContent?.trim());
+	});
+
+	it('ハザード表示より小さく・控えめに描かれる', async () => {
+		await render(Page);
+		const build = $('.build-info');
+		const title = $('h1');
+		if (build === null || title === null) throw new Error('ヘッダーの構成が壊れている');
+
+		const buildSize = parseFloat(getComputedStyle(build).fontSize);
+		expect(buildSize).toBeLessThan(parseFloat(getComputedStyle(title).fontSize));
+		expect(parseFloat(getComputedStyle(build).opacity)).toBeLessThan(1);
 	});
 });
 

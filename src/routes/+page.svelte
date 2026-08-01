@@ -19,6 +19,7 @@
 	} from '$lib/services/scoringRules';
 	import { pinnedIds, togglePinned } from '$lib/stores/pinnedStore';
 	import PinIcon from '$lib/components/PinIcon.svelte';
+	import { buildLabel, formatBuildTime, BUILD_TIME } from '$lib/utils/buildInfo';
 	import { getWeatherLabel } from '$lib/api/weather';
 	import { splitRegionName } from '$lib/utils/regionName';
 	import { buildSearchIndex, matchesSearch, normalizeForSearch } from '$lib/utils/regionFilter';
@@ -382,12 +383,21 @@
 			<div class="header-left">
 				<span class="live-badge">LIVE</span>
 				<h1>JAPAN RISK MAP</h1>
+				<!--
+					ビルド情報。どのデプロイが公開されているかを画面から判別するために出す。
+					ヘッダー右のデータ取得時刻（`Updated:`）とは別物なので、
+					こちらはサイト名の直後に置き、日付だけを出して役割を分ける。
+				-->
+				<span class="build-info" title="ビルド日時（JST）: {formatBuildTime(BUILD_TIME)}">
+					{buildLabel()}
+				</span>
 			</div>
 			<div class="header-right">
 				{#if $loading}
 					<span class="status-text blink">更新中</span>
 				{:else if $lastUpdated}
-					<span class="status-text">{formatTime($lastUpdated)}</span>
+					<span class="status-text" title="データ取得時刻">Updated: {formatTime($lastUpdated)}</span
+					>
 				{/if}
 				<button class="share-btn" onclick={shareTwitter}>𝕏 シェア</button>
 			</div>
@@ -937,6 +947,30 @@
 		font-family: var(--mono);
 		font-size: 11px;
 		color: var(--text-2);
+		white-space: nowrap;
+	}
+
+	/**
+	 * サイト名の右に添えるバージョンとビルド日。開発・運用側の情報で、閲覧者が読むべき
+	 * ものではないのでハザード表示と競合しないよう最小・低コントラストにする。
+	 * `flex-shrink: 0` はタイトルの ellipsis に食われないため。
+	 * 狭い画面では隠す —— 幅を食ってタイトルやデータ取得時刻を押し出すほどの価値はない
+	 * （デプロイの確認はデスクトップで行う）。
+	 */
+	.build-info {
+		font-family: var(--mono);
+		font-size: 10px;
+		color: var(--text-2);
+		opacity: 0.6;
+		white-space: nowrap;
+		flex-shrink: 0;
+		font-variant-numeric: tabular-nums;
+	}
+
+	@media (max-width: 599px) {
+		.build-info {
+			display: none;
+		}
 	}
 
 	.blink {

@@ -2,6 +2,7 @@ import { defineConfig } from 'vitest/config';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { playwright } from '@vitest/browser-playwright';
 import { resolve } from 'path';
+import { buildDefines } from './build-defines';
 
 /**
  * ブラウザモードのテスト（`*.browser.test.ts`）。
@@ -21,6 +22,8 @@ import { resolve } from 'path';
  * jsdom でも書けるアサーションを持ち込まない。
  */
 export default defineConfig({
+	// ヘッダーが参照する。渡さないと +page.svelte の描画時点で落ちる
+	define: buildDefines(),
 	// runes は vite.config.ts の sveltekit() と同じ設定にする ——
 	// アプリと違うコンパイラ設定でテストしても意味がない
 	plugins: [
