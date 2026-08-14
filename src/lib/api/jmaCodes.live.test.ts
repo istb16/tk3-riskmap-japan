@@ -185,4 +185,55 @@ describe('気象庁コード表の追随確認（ネットワークアクセス�
 		},
 		TIMEOUT
 	);
+
+	// ─── 取得元の凍結検知 ─────────────────────────────────────────────────────
+	//
+	// per-office の警報JSONは2026年5月に配信停止したが、200と過去データを返し続けたため
+	// 「全国どこにも警報なし」と区別がつかず、2か月半気づけなかった
+	// （.grill/jma-warning-r8-migration.md）。HTTPの成否では検知できないので、
+	// 「日本では必ず短期間に更新が入る」性質を持つ取得元に鮮度の下限を張る。
+	// 津波・火山はイベント駆動で何か月も静穏がありうるため、鮮度では検知できない
+	// （現行SPA＝map.html が同じファイルを参照していることを人が確認する）。
+
+	it(
+		'警報電文が凍結していない（直近3日以内の発表がある）',
+		async () => {
+			// 全国287通（官署×電文種別）のうち、雷・濃霧などの注意報で毎日どこかが更新される。
+			// 3日間全国で1通も発表がなければ、取得元が凍結したと判断してよい
+			interface Bulletin {
+				reportDatetime?: string;
+			}
+			const bulletins = await getJson<Bulletin[]>(
+				'https://www.jma.go.jp/bosai/warning/data/r8/map.json'
+			);
+			expect(bulletins.length).toBeGreaterThan(0);
+			const latest = bulletins
+				.map((b) => (b.reportDatetime ? Date.parse(b.reportDatetime) : NaN))
+				.filter((t) => Number.isFinite(t))
+				.reduce((a, b) => Math.max(a, b), 0);
+			const ageDays = (Date.now() - latest) / (24 * 60 * 60 * 1000);
+			expect(ageDays).toBeLessThan(3);
+		},
+		TIMEOUT
+	);
+
+	it(
+		'地震リストが凍結していない（直近7日以内の地震がある）',
+		async () => {
+			// 日本で有感地震が7日間ゼロになることはない（実測: 30日分のリストに約800件）
+			interface QuakeEntry {
+				at?: string;
+				rdt?: string;
+			}
+			const list = await getJson<QuakeEntry[]>('https://www.jma.go.jp/bosai/quake/data/list.json');
+			expect(list.length).toBeGreaterThan(0);
+			const latest = list
+				.map((e) => Date.parse(e.at ?? e.rdt ?? ''))
+				.filter((t) => Number.isFinite(t))
+				.reduce((a, b) => Math.max(a, b), 0);
+			const ageDays = (Date.now() - latest) / (24 * 60 * 60 * 1000);
+			expect(ageDays).toBeLessThan(7);
+		},
+		TIMEOUT
+	);
 });
