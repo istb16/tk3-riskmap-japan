@@ -326,7 +326,7 @@ UI側で外してはいけない点:
 | ---------------------- | ---------------------------------------------------------- | ------------------------------------- |
 | Open-Meteo             | `api.open-meteo.com/v1/forecast`                           | 気象（64地点を1リクエスト）           |
 | Open-Meteo Air Quality | `air-quality-api.open-meteo.com/v1/air-quality`            | PM2.5・AQI（64地点を1リクエスト）     |
-| 気象庁 警報・注意報    | `jma.go.jp/bosai/warning/data/warning/{officeCode}.json`   | 警報レベル（同時実行5で取得）         |
+| 気象庁 警報・注意報    | `jma.go.jp/bosai/warning/data/r8/map.json`                 | 警報レベル（全国分を1リクエスト）     |
 | 気象庁 地域名          | `jma.go.jp/bosai/common/const/area.json`                   | 区域コード → 名称・市区町村展開       |
 | 気象庁 地震情報        | `jma.go.jp/bosai/quake/data/list.json`                     | **都道府県別の実測震度**              |
 | 気象庁 津波            | `jma.go.jp/bosai/tsunami/data/list.json` ＋ 詳細JSON       | 津波予報区ごとの警報レベル            |
@@ -360,8 +360,18 @@ UI側で外してはいけない点:
   「有明・八代海」「東京湾内湾」のように都道府県名を含まない予報区を取りこぼし、
   かつ複数県にまたがる予報区を1県にしか割り当てられない。
   結果は `Region.tsunamiAreaCodes` に持たせている。
-- **警報は官署単位で丸ごと集約してはいけない。** `warning/{officeCode}.json` には
-  その官署が担当する全区域の分が入っている（東京都なら伊豆諸島・小笠原諸島も）。
+- **警報は per-office の `warning/data/warning/{officeCode}.json` を使わない。**
+  2026年5月下旬に更新が止まり、5月の注意報が「発表」のまま凍結している
+  （関東6都県すべて Last-Modified が5月下旬で凍結、その間に発令された千葉の
+  土砂災害危険警報が一切載らないことを実測で確認）。気象庁の警報ページ自身が使う
+  全国一括の `warning/data/r8/map.json`（gzip後約43KB）を1リクエストで読む。
+  電文は官署×電文種別（VPWW55〜61）ごとに最新1件で、現象群ごとに別電文なので
+  **全電文の `class10Items` を走査して「発表・継続」を合算する**（古い電文に有効な
+  status は残らないことを実測確認済み）。凍結データを出すのは無より有害なので、
+  per-office へのフォールバックは持たない。設計の経緯は
+  [`.grill/jma-warning-r8-migration.md`](.grill/jma-warning-r8-migration.md)。
+- **警報は官署単位で丸ごと集約してはいけない。** 全国一括の警報電文には
+  各官署が担当する全区域の分が入っている（東京都なら伊豆諸島・小笠原諸島も）。
   必ず `Region.class10Codes` で絞り込む。
 - **未知の警報コードは名称を捏造しない。** 「気象注意報（コードNN）」として注意報相当で扱う
   （万一警報級だった場合、過大評価より過小評価のほうが安全）。
@@ -438,6 +448,9 @@ Prettier の既定（`endOfLine: "lf"`）と食い違って **`npm run lint` が
   （地域フィルタ。かな照合・全国順位の維持・地図も絞る・入力欄をパネルの外に置く）
 - [`.grill/pin-favorite-regions.md`](.grill/pin-favorite-regions.md)
   （地域のピン留め。危険度で行の密度を変える・重複表示・localStorage の契約）
+- [`.grill/jma-warning-r8-migration.md`](.grill/jma-warning-r8-migration.md)
+  （警報取得を全国一括 `r8/map.json` へ移行。per-office 凍結の実測・フォールバック非採用・
+  雨の残存減衰を作らない判断）
 
 ## テスト方針
 

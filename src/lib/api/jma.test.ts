@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { levelsFromCodes, warningName } from './jma';
+import { activeCodesByClass10, levelsFromCodes, warningName } from './jma';
 
 /**
  * コードと名称の対応は気象庁防災情報XMLフォーマットの
@@ -53,6 +53,73 @@ describe('warningName', () => {
 		// 公式表で「未定・予約」のコード。将来運用開始されたらここに落ちる
 		expect(warningName('42')).toBe('気象注意報（コード42）');
 		expect(warningName('99')).toBe('気象注意報（コード99）');
+	});
+});
+
+describe('activeCodesByClass10', () => {
+	// 2026-08-14 の実レスポンス（千葉県・銚子地方気象台）を縮約したフィクスチャ。
+	// 電文は現象群ごとに分かれており（VPWW55=洪水系 / VPWW56=大雨・土砂災害系）、
+	// 同じ区域の現況が複数電文にまたがる。
+	const bulletins = [
+		{
+			warning: {
+				class10Items: [
+					{ areaCode: '120010', kinds: [{ code: '10', status: '継続' }] },
+					{ areaCode: '120020', kinds: [{ status: '発表警報・注意報はなし' }] },
+					{ areaCode: '120030', kinds: [{ status: '発表警報・注意報はなし' }] },
+				],
+			},
+		},
+		{
+			warning: {
+				class10Items: [
+					{ areaCode: '120010', kinds: [{ code: '49', status: '継続' }] },
+					{ areaCode: '120020', kinds: [{ code: '29', status: '継続' }] },
+					{ areaCode: '120030', kinds: [{ code: '29', status: '発表' }] },
+				],
+			},
+		},
+		{
+			warning: {
+				class10Items: [
+					{ areaCode: '120010', kinds: [{ code: '15', status: '解除' }] },
+					{ areaCode: '120030', kinds: [{ code: '16', status: '継続' }] },
+				],
+			},
+		},
+	];
+
+	it('複数電文にまたがる同一区域の警報を合算する', () => {
+		const result = activeCodesByClass10(bulletins);
+		expect(result['120010']?.sort()).toEqual(['10', '49']);
+		expect(result['120030']?.sort()).toEqual(['16', '29']);
+	});
+
+	it('「発表」と「継続」だけを発令中と数える', () => {
+		const result = activeCodesByClass10(bulletins);
+		// 120010 の強風注意報(15)は解除なので入らない
+		expect(result['120010']).not.toContain('15');
+		expect(result['120030']).toContain('29');
+	});
+
+	it('「発表警報・注意報はなし」（codeなし）の区域は索引に現れない', () => {
+		const result = activeCodesByClass10([bulletins[0]]);
+		expect(result['120020']).toBeUndefined();
+		expect(result['120030']).toBeUndefined();
+	});
+
+	it('対象外の区域コードは混入しない', () => {
+		const result = activeCodesByClass10(bulletins);
+		expect(Object.keys(result).sort()).toEqual(['120010', '120020', '120030']);
+	});
+
+	it('複数電文に同じコードがあっても1回だけ数える', () => {
+		const dup = [bulletins[1], bulletins[1]];
+		expect(activeCodesByClass10(dup)['120010']).toEqual(['49']);
+	});
+
+	it('warning や class10Items を持たない電文があっても落ちない', () => {
+		expect(activeCodesByClass10([{}, { warning: {} }])).toEqual({});
 	});
 });
 

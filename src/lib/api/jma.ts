@@ -1,7 +1,6 @@
 import type { AlertLevel, JmaData, JmaWarningArea, WeatherCategory } from '../types';
 import { emptyCategoryLevels, emptyCategoryNames } from '../types';
 import { fetchJson } from './http';
-import { runWithConcurrency } from '../utils/concurrent';
 import { maxAlertLevel } from '../services/scoringRules';
 
 /**
@@ -16,7 +15,7 @@ import { maxAlertLevel } from '../services/scoringRules';
  *
  * このコード表は実行時に取得するデータではなく、ソースに焼き込む静的データなので、
  * CORS の制約（`bosai` 系以外はブラウザから叩けない）は適用されない。
- * 実行時に叩く `warning/{prefCode}.json` は値を2桁ゼロ埋めで返すため、キーも2桁で持つ。
+ * 実行時に叩く `warning/data/r8/map.json` は値を2桁ゼロ埋めで返すため、キーも2桁で持つ。
  *
  * ## 土砂災害のカテゴリについて
  * 土砂災害警報（09/29/39/49）は大雨を原因とする現象なので `rain` に含める。
@@ -115,22 +114,25 @@ export function isKnownWarningCode(code: string): boolean {
 	return code in WARNING_RULES;
 }
 
-interface JmaWarningEntry {
+interface JmaWarningKind {
 	code?: string;
-	status: string;
+	status?: string;
 }
 
-interface JmaArea {
-	code: string;
-	warnings: JmaWarningEntry[];
+interface JmaClass10Item {
+	areaCode?: string;
+	kinds?: JmaWarningKind[];
 }
 
-interface JmaAreaType {
-	areas: JmaArea[];
-}
-
-interface JmaWarningResponse {
-	areaTypes: JmaAreaType[];
+/**
+ * `warning/data/r8/map.json` の電文1件。
+ * 全国分が「官署×電文種別（VPWW55〜61）ごとに最新1件」のリストで配信される。
+ * 使うのは一次細分区域単位の `class10Items` だけ（市区町村単位の `class20Items` 等は読まない）。
+ */
+interface JmaWarningBulletin {
+	warning?: {
+		class10Items?: JmaClass10Item[];
+	};
 }
 
 interface AreaInfo {
@@ -218,55 +220,70 @@ export function levelsFromCodes(activeCodes: string[]): {
 }
 
 /**
- * 指定した官署の警報を取得し、`class10Codes` に含まれる一次細分区域だけを集計する。
+ * 全国一括の警報電文JSON。
  *
- * 官署単位で丸ごと集約してはいけない。たとえば東京都の警報JSONには伊豆諸島・小笠原諸島の
- * 分も含まれており、実測では東京23区が無警報なのに伊豆諸島の4つの注意報が
- * 東京のスコアに乗っていた。
- *
- * `class10Codes` が空の場合は官署内の全区域を対象にする（後方互換）。
+ * per-office の `warning/data/warning/{officeCode}.json` は2026年5月下旬に更新が止まり、
+ * 5月の注意報が「発表」のまま凍結している（関東6都県すべて Last-Modified が5月下旬で
+ * 凍結していることを実測で確認）。早期注意情報が `probability/{officeCode}.json` から
+ * `r8/map.json` へ移ったのと同じパターンで、気象庁の警報ページ自身もこのURLを fetch している。
+ * 凍結データを出すのは無表示より有害なので、per-office へのフォールバックは持たない
+ * （取得失敗時は呼び出し側の `jmaWarningsAvailable=false` → Open-Meteo 推定経路が働く）。
  */
-export async function fetchJmaWarnings(
-	officeCode: string,
-	class10Codes: readonly string[] = []
-): Promise<JmaData> {
-	const [warningData, areaNames] = await Promise.all([
-		fetchJson<JmaWarningResponse>(
-			`https://www.jma.go.jp/bosai/warning/data/warning/${officeCode}.json`,
-			'JMA'
-		),
-		getAreaNames(),
-	]);
+const WARNING_MAP_URL = 'https://www.jma.go.jp/bosai/warning/data/r8/map.json';
 
-	// 一次細分区域（areaTypes[0]）を使用
-	const primaryAreas: JmaArea[] = warningData.areaTypes?.[0]?.areas ?? [];
-	const wanted = new Set(class10Codes);
+/** 発令中と数える status。「解除」「発表警報・注意報はなし」は除外する。 */
+const ACTIVE_STATUSES = new Set(['発表', '継続']);
 
-	const allActiveCodes: string[] = [];
-	const activeAreas: JmaWarningArea[] = [];
-	for (const area of primaryAreas) {
-		if (wanted.size > 0 && !wanted.has(area.code)) continue;
-		const codes = (area.warnings ?? [])
-			.filter((w) => w.code && (w.status === '発表' || w.status === '継続'))
-			.map((w) => w.code as string);
-		if (codes.length > 0) {
-			allActiveCodes.push(...codes);
-			activeAreas.push({
-				name: areaNames[area.code] ?? area.code,
-				warnings: codes.map(warningName),
-			});
+/**
+ * 全電文から「一次細分区域コード → 発令中の警報コード一覧」の索引を作る。
+ *
+ * 電文は現象群ごとに分かれている（大雨・土砂災害／洪水／雷／波浪…）ため、
+ * 1区域の現況は複数の電文にまたがる。全電文を走査して合算する。
+ * 発令中の警報は必ず最新電文に載り続ける（古い電文に「発表・継続」が残らないことを
+ * 全国287電文で実測確認済み）ので、reportDatetime での鮮度判定はしない。
+ */
+export function activeCodesByClass10(bulletins: JmaWarningBulletin[]): Record<string, string[]> {
+	const result: Record<string, Set<string>> = {};
+	for (const bulletin of bulletins) {
+		for (const item of bulletin.warning?.class10Items ?? []) {
+			if (!item.areaCode) continue;
+			for (const kind of item.kinds ?? []) {
+				if (!kind.code || !ACTIVE_STATUSES.has(kind.status ?? '')) continue;
+				(result[item.areaCode] ??= new Set()).add(kind.code);
+			}
 		}
 	}
-
-	return { areas: activeAreas, ...levelsFromCodes(allActiveCodes) };
+	return Object.fromEntries(Object.entries(result).map(([code, set]) => [code, [...set]]));
 }
 
 /**
- * 全地域の警報データを同時実行数5で取得する。
- * 同じ官署を共有する地域（本土と離島）でも、集計対象の区域が異なるので個別に絞り込む。
+ * 全地域の警報データを全国一括JSONの1リクエストで取得する。
+ *
+ * 官署単位で丸ごと集約してはいけない。たとえば東京都には伊豆諸島・小笠原諸島の
+ * 分も含まれており、実測では東京23区が無警報なのに伊豆諸島の4つの注意報が
+ * 東京のスコアに乗っていた。必ず `class10Codes` で絞り込む。
  */
 export async function fetchAllJmaWarnings(
-	regions: Array<{ jmaCode: string; class10Codes: string[] }>
-): Promise<(JmaData | null)[]> {
-	return runWithConcurrency(regions, (r) => fetchJmaWarnings(r.jmaCode, r.class10Codes), 5);
+	regions: Array<{ class10Codes: string[] }>
+): Promise<JmaData[]> {
+	const [bulletins, areaNames] = await Promise.all([
+		fetchJson<JmaWarningBulletin[]>(WARNING_MAP_URL, 'JMA'),
+		getAreaNames(),
+	]);
+	const byClass10 = activeCodesByClass10(bulletins);
+
+	return regions.map((region) => {
+		const allActiveCodes: string[] = [];
+		const activeAreas: JmaWarningArea[] = [];
+		for (const class10Code of region.class10Codes) {
+			const codes = byClass10[class10Code] ?? [];
+			if (codes.length === 0) continue;
+			allActiveCodes.push(...codes);
+			activeAreas.push({
+				name: areaNames[class10Code] ?? class10Code,
+				warnings: codes.map(warningName),
+			});
+		}
+		return { areas: activeAreas, ...levelsFromCodes(allActiveCodes) };
+	});
 }

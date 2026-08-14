@@ -3,7 +3,6 @@ import { REGIONS } from '../regions';
 import { isKnownWarningCode, getCityCodesByClass10 } from './jma';
 import { isKnownVolcanoCode } from './volcano';
 import { categoryForPhenomenon } from './earlyWarning';
-import { runWithConcurrency } from '../utils/concurrent';
 
 /**
  * 気象庁のコード表がハードコードした内容とズレていないかを、実際のAPIレスポンスで検証する。
@@ -29,29 +28,30 @@ describe('気象庁コード表の追随確認（ネットワークアクセス�
 	it(
 		'流通している気象警報コードがすべて公式コード表に載っている',
 		async () => {
-			interface WarningJson {
-				areaTypes?: Array<{ areas?: Array<{ warnings?: Array<{ code?: string }> }> }>;
+			interface WarningItem {
+				kinds?: Array<{ code?: string }>;
 			}
-			const offices = [...new Set(REGIONS.map((r) => r.jmaCode))];
-			const results = await runWithConcurrency(
-				offices,
-				(code) =>
-					getJson<WarningJson>(`https://www.jma.go.jp/bosai/warning/data/warning/${code}.json`),
-				5
+			interface WarningBulletin {
+				warning?: { class10Items?: WarningItem[]; class20Items?: WarningItem[] };
+			}
+			// 全国一括の電文リスト。コード表の突き合わせなので class20Items まで含めて広く拾う
+			const bulletins = await getJson<WarningBulletin[]>(
+				'https://www.jma.go.jp/bosai/warning/data/r8/map.json'
 			);
-
-			// runWithConcurrency は失敗を null にするため、取得できた件数を先に確認する
-			// （全滅していると「未知コードなし」で空振りパスしてしまう）
-			expect(results.filter(Boolean).length).toBe(offices.length);
+			expect(bulletins.length).toBeGreaterThan(0);
 
 			const unknown = new Set<string>();
 			const seen = new Set<string>();
-			for (const data of results) {
-				for (const area of data?.areaTypes?.[0]?.areas ?? []) {
-					for (const w of area.warnings ?? []) {
-						if (!w.code) continue;
-						seen.add(w.code);
-						if (!isKnownWarningCode(w.code)) unknown.add(w.code);
+			for (const bulletin of bulletins) {
+				const items = [
+					...(bulletin.warning?.class10Items ?? []),
+					...(bulletin.warning?.class20Items ?? []),
+				];
+				for (const item of items) {
+					for (const kind of item.kinds ?? []) {
+						if (!kind.code) continue;
+						seen.add(kind.code);
+						if (!isKnownWarningCode(kind.code)) unknown.add(kind.code);
 					}
 				}
 			}

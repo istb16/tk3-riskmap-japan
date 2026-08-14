@@ -478,7 +478,7 @@ export interface AllRegionRisksResult {
  * - 気象庁 地震（実測震度）: 1リクエスト → 都道府県ごとに振り分け（失敗時はUSGSにフォールバック）
  * - 気象庁 津波: 一覧＋最新詳細の2リクエスト
  * - 気象庁 噴火警報: 1リクエスト
- * - 気象庁 警報・注意報: 同時実行数5で順次取得
+ * - 気象庁 警報・注意報: 1リクエスト（全国分の一括JSON）
  * - 気象庁 早期注意情報: 1リクエスト（全国分の一括JSON）
  */
 export async function calculateAllRegionRisks(regions: Region[]): Promise<AllRegionRisksResult> {
@@ -514,12 +514,7 @@ export async function calculateAllRegionRisks(regions: Region[]): Promise<AllReg
 	if (weatherSettled.status === 'rejected') failedApis.push('気象');
 	if (earthquakeSettled.status === 'rejected') failedApis.push('地震');
 	if (airSettled.status === 'rejected') failedApis.push('大気質');
-	// JMA警報は地域ごとに取得するため、`runWithConcurrency` が個別の失敗を null に潰す。
-	// バッチ自体は reject しないので、全地域が null なら全滅と判断する
-	// （そうしないと「全国どこにも警報なし」と区別できず、エラー表示も出ない）。
-	if (jmaSettled.status === 'rejected' || (regions.length > 0 && jmas.every((j) => j === null))) {
-		failedApis.push('JMA警報');
-	}
+	if (jmaSettled.status === 'rejected') failedApis.push('JMA警報');
 	if (earlySettled.status === 'rejected') failedApis.push('早期注意情報');
 	if (tsunamiSettled.status === 'rejected') failedApis.push('津波');
 	if (volcanoSettled.status === 'rejected') failedApis.push('火山');
