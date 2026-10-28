@@ -605,6 +605,11 @@ firebase deploy --only hosting
 - **外部ライブラリの型を活用する** — Leaflet は `@types/leaflet` から `Map`, `Marker` 等を import して使う。動的 import のパラメータ型は `typeof import('leaflet')` 形式を使う
 - **Null の型ガード** — `null` になりうる変数を関数に渡す前に早期 return でナローイングする
 - **`strict: true`** — `tsconfig.json` で有効化済み。型チェックは `npm run check` で確認する
+- **`src/lib` は `#lib/...` で import し、拡張子まで書く**（`'#lib/regions.ts'`）。SvelteKit 3 で
+  `$lib` は廃止され、`package.json` の `imports`（subpath imports）に置き換わった。
+  拡張子を省くと TypeScript が解決できない（subpath imports には拡張子補完が効かない）。
+  `tsconfig.json` は `svelte-kit sync` が生成する `$app/tsconfig`（`node_modules/$app/tsconfig.json`）を継承する
+
 
 ## 重要な設計制約
 

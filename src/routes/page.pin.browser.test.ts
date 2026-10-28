@@ -2,9 +2,9 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { tick } from 'svelte';
 import { get, type Writable } from 'svelte/store';
-import { REGIONS } from '$lib/regions';
-import { pinnedIds } from '$lib/stores/pinnedStore';
-import { emptyCategoryLevels, emptyCategoryNames, type RegionRisk } from '$lib/types';
+import { REGIONS } from '#lib/regions.ts';
+import { pinnedIds } from '#lib/stores/pinnedStore.ts';
+import { emptyCategoryLevels, emptyCategoryNames, type RegionRisk } from '#lib/types.ts';
 import Page from './+page.svelte';
 
 /**
@@ -18,7 +18,7 @@ import Page from './+page.svelte';
  * `riskStore` はモックしてネットワークに出さない。自動更新も止める。
  * `pinnedStore` は**本物**を使う（このページの検証対象そのものなので）。
  */
-vi.mock('$lib/stores/riskStore', async () => {
+vi.mock('#lib/stores/riskStore.ts', async () => {
 	const { writable } = await import('svelte/store');
 	return {
 		regions: writable<RegionRisk[]>([]),
@@ -33,7 +33,7 @@ vi.mock('$lib/stores/riskStore', async () => {
 	};
 });
 
-const riskStore = await import('$lib/stores/riskStore');
+const riskStore = await import('#lib/stores/riskStore.ts');
 const ranked = riskStore.rankedRegions as unknown as Writable<RegionRisk[]>;
 const loading = riskStore.loading as unknown as Writable<boolean>;
 const selected = riskStore.selectedRegion as unknown as Writable<RegionRisk | null>;

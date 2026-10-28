@@ -1,7 +1,6 @@
 import { defineConfig } from 'vitest/config';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { playwright } from '@vitest/browser-playwright';
-import { resolve } from 'path';
 import { buildDefines } from './build-defines.ts';
 
 /**
@@ -46,9 +45,6 @@ export default defineConfig({
 		},
 	},
 	resolve: {
-		alias: {
-			$lib: resolve(import.meta.dirname, './src/lib'),
-		},
 		// ブラウザモードでは Svelte のブラウザ向けエントリを使わせる
 		conditions: ['browser'],
 	},

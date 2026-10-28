@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { get } from 'svelte/store';
-import { REGIONS } from '$lib/regions';
-import { PINNED_STORAGE_KEY } from '$lib/utils/pinnedStorage';
+import { REGIONS } from '#lib/regions.ts';
+import { PINNED_STORAGE_KEY } from '#lib/utils/pinnedStorage.ts';
 
 /**
  * pinnedStore を**本物の localStorage**の上で動かす。

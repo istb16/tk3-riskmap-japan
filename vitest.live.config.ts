@@ -1,5 +1,4 @@
 import { defineConfig } from 'vitest/config';
-import { resolve } from 'path';
 import { buildDefines } from './build-defines.ts';
 
 /**
@@ -15,10 +14,5 @@ export default defineConfig({
 		globals: true,
 		include: ['src/**/*.live.test.ts'],
 		testTimeout: 120_000,
-	},
-	resolve: {
-		alias: {
-			$lib: resolve(import.meta.dirname, './src/lib'),
-		},
 	},
 });

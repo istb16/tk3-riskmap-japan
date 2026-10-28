@@ -2,11 +2,11 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { tick } from 'svelte';
 import type { Writable } from 'svelte/store';
-import { REGIONS } from '$lib/regions';
-import { pinnedIds } from '$lib/stores/pinnedStore';
-import { riskBand } from '$lib/services/scoringRules';
-import { APP_VERSION } from '$lib/utils/buildInfo';
-import type { RegionRisk } from '$lib/types';
+import { REGIONS } from '#lib/regions.ts';
+import { pinnedIds } from '#lib/stores/pinnedStore.ts';
+import { riskBand } from '#lib/services/scoringRules.ts';
+import { APP_VERSION } from '#lib/utils/buildInfo.ts';
+import type { RegionRisk } from '#lib/types.ts';
 import Page from './+page.svelte';
 
 /**
@@ -17,7 +17,7 @@ import Page from './+page.svelte';
  * - 絞り込みに地図が追随すること（0件のときに前のマーカーが残らないこと）
  * - `getComputedStyle` による所属都道府県の文字サイズ比
  */
-vi.mock('$lib/stores/riskStore', async () => {
+vi.mock('#lib/stores/riskStore.ts', async () => {
 	const { writable } = await import('svelte/store');
 	return {
 		regions: writable<RegionRisk[]>([]),
@@ -45,7 +45,7 @@ const TRANSPARENT_PNG =
 const leaflet = (await import('leaflet')).default;
 leaflet.TileLayer.prototype.getTileUrl = () => TRANSPARENT_PNG;
 
-const riskStore = await import('$lib/stores/riskStore');
+const riskStore = await import('#lib/stores/riskStore.ts');
 const ranked = riskStore.rankedRegions as unknown as Writable<RegionRisk[]>;
 const lastUpdated = riskStore.lastUpdated as unknown as Writable<number | null>;
 const pinned = pinnedIds as Writable<ReadonlySet<string>>;

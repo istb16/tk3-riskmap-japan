@@ -8,23 +8,23 @@
 		selectedRegion,
 		startAutoRefresh,
 		stopAutoRefresh,
-	} from '$lib/stores/riskStore';
-	import { formatDateTime } from '$lib/services/riskCalculator';
+	} from '#lib/stores/riskStore.ts';
+	import { formatDateTime } from '#lib/services/riskCalculator.ts';
 	import {
 		SHINDO_LABELS,
 		TSUNAMI_LABELS,
 		riskBand,
 		RISK_BANDS,
 		SWARM_WINDOW_DAYS,
-	} from '$lib/services/scoringRules';
-	import { pinnedIds, togglePinned } from '$lib/stores/pinnedStore';
-	import PinIcon from '$lib/components/PinIcon.svelte';
-	import { buildLabel, formatBuildTime, BUILD_TIME } from '$lib/utils/buildInfo';
-	import { getWeatherLabel } from '$lib/api/weather';
-	import { splitRegionName } from '$lib/utils/regionName';
-	import { buildSearchIndex, matchesSearch, normalizeForSearch } from '$lib/utils/regionFilter';
-	import { REGIONS } from '$lib/regions';
-	import type { JmaWarningArea, RegionRisk } from '$lib/types';
+	} from '#lib/services/scoringRules.ts';
+	import { pinnedIds, togglePinned } from '#lib/stores/pinnedStore.ts';
+	import PinIcon from '#lib/components/PinIcon.svelte';
+	import { buildLabel, formatBuildTime, BUILD_TIME } from '#lib/utils/buildInfo.ts';
+	import { getWeatherLabel } from '#lib/api/weather.ts';
+	import { splitRegionName } from '#lib/utils/regionName.ts';
+	import { buildSearchIndex, matchesSearch, normalizeForSearch } from '#lib/utils/regionFilter.ts';
+	import { REGIONS } from '#lib/regions.ts';
+	import type { JmaWarningArea, RegionRisk } from '#lib/types.ts';
 	import type { Map as LeafletMap, Marker } from 'leaflet';
 
 	let mapEl: HTMLDivElement = $state()!;

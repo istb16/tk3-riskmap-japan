@@ -1,5 +1,4 @@
 import { defineConfig, configDefaults } from 'vitest/config';
-import { resolve } from 'path';
 import { buildDefines } from './build-defines.ts';
 
 export default defineConfig({
@@ -17,11 +16,6 @@ export default defineConfig({
 			include: ['src/lib/**/*.ts'],
 			exclude: ['src/lib/index.ts', 'src/lib/assets/**'],
 			reporter: ['text', 'html'],
-		},
-	},
-	resolve: {
-		alias: {
-			$lib: resolve(import.meta.dirname, './src/lib'),
 		},
 	},
 });
