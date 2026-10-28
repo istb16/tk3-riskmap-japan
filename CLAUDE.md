@@ -610,6 +610,19 @@ firebase deploy --only hosting
   拡張子を省くと TypeScript が解決できない（subpath imports には拡張子補完が効かない）。
   `tsconfig.json` は `svelte-kit sync` が生成する `$app/tsconfig`（`node_modules/$app/tsconfig.json`）を継承する
 
+### TypeScript のバージョン
+
+**TypeScript は 6 系に据え置き。以下が TS 7 に対応したら上げる**（2026-08-14 に一度見送り、
+2026-10-28 時点でも未対応を確認）:
+
+- `@sveltejs/kit` 3.x — peerDependencies が `typescript: ^6.0.0`。`svelte-kit sync` が
+  TS の JS API（`ts.readConfigFile` / `ts.parseJsonConfigFileContent`）で tsconfig を検証するため、
+  JS API を持たない TS 7（Go ネイティブ版）では落ちる
+- `svelte-check` 4.x（と内部の `svelte2tsx`）— peerDependencies が `typescript: ^5.0.0 || ^6.0.0`
+- `typescript-eslint` 8.x（`@typescript-eslint/*` 一式）— peerDependencies が `typescript: >=4.8.4 <6.1.0`
+
+確認は `npm view <pkg> peerDependencies`。Dependabot は `typescript` の 7 以上を無視する設定にしてある
+（`.github/dependabot.yml`）。上げるときはそこも外す
 
 ## 重要な設計制約
 
