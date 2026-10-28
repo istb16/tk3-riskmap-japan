@@ -1,0 +1,19 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      npm-dependencies:
+        patterns: ['*']
+        update-types: [minor, patch]
+    # TypeScript は 6 系に据え置き（TS 7 を阻んでいるライブラリは CLAUDE.md 参照）
+    ignore:
+      - dependency-name: typescript
+        versions: ['>=7']
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
