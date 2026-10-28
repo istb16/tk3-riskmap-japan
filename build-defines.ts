@@ -1,3 +1,5 @@
+// import attribute と（設定ファイル側の）'.ts' 拡張子は、Vite の configLoader: 'native'
+// （将来のメジャーで既定になる予定）が要求する。外すと設定読み込み時に警告が出る。
 import pkg from './package.json' with { type: 'json' };
 
 /**

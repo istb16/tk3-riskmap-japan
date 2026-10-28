@@ -47,7 +47,7 @@ export default defineConfig({
 	},
 	resolve: {
 		alias: {
-			$lib: resolve(__dirname, './src/lib'),
+			$lib: resolve(import.meta.dirname, './src/lib'),
 		},
 		// ブラウザモードでは Svelte のブラウザ向けエントリを使わせる
 		conditions: ['browser'],
