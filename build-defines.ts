@@ -1,4 +1,4 @@
-import pkg from './package.json';
+import pkg from './package.json' with { type: 'json' };
 
 /**
  * ビルド時に焼き込む定数。`vite.config.ts` と vitest の各設定が共有する。

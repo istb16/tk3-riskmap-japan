@@ -1,6 +1,6 @@
 import { defineConfig, configDefaults } from 'vitest/config';
 import { resolve } from 'path';
-import { buildDefines } from './build-defines';
+import { buildDefines } from './build-defines.ts';
 
 export default defineConfig({
 	// buildInfo.ts が参照する。渡さないと「__APP_VERSION__ is not defined」で落ちる

@@ -2,7 +2,7 @@ import { defineConfig } from 'vitest/config';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { playwright } from '@vitest/browser-playwright';
 import { resolve } from 'path';
-import { buildDefines } from './build-defines';
+import { buildDefines } from './build-defines.ts';
 
 /**
  * ブラウザモードのテスト（`*.browser.test.ts`）。
