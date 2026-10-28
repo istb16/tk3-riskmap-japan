@@ -59,10 +59,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      # このジョブだけ Node 24 に留める。firebase-tools が依存する superstatic が
+      # engines で "20 || 22 || 24" を要求し、Node 26 だと npx が EBADENGINE で落ちる。
+      # superstatic が 26 に対応したら browser-tests と揃えて 26 に上げる
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: 26
+          node-version: 24
           cache: npm
 
       # --omit=dev を付けないこと。adapter-static も svelte/vite も devDependencies にあり、
