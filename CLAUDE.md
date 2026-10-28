@@ -559,6 +559,16 @@ firebase deploy --only hosting
   気象庁側の不調でデプロイが止まる。あれは人が回して結果を見るもの
 - Chromium のダウンロードは `~/.cache/ms-playwright` にキャッシュしている
   （`--with-deps` の apt はキャッシュされない）
+- **CI のサービスアカウント（`secrets.FIREBASE_SERVICE_ACCOUNT`）には
+  `Service Usage ユーザー`（`roles/serviceusage.serviceUsageConsumer`）のロールが要る。**
+  firebase-tools 15.34.1 時点で、デプロイ前に Firebase Hosting API の有効状態を
+  Service Usage API に問い合わせるようになっており、権限がないと
+  `HTTP Error: 403, Permission denied to get service [firebasehosting.googleapis.com]` で落ちる
+  （15.28.1 では問い合わせていなかった。`@latest` で取得しているので気づかず切り替わる）。
+  サービスアカウントを作り直すときは Hosting 系のロールと合わせて付ける
+- **`deploy` ジョブの Node は 24 に留めている**（`browser-tests` は 26）。firebase-tools が依存する
+  `superstatic` が engines で `"20 || 22 || 24"` を要求し、26 だと `npx` が `EBADENGINE` で落ちる。
+  superstatic が対応したら揃えて上げる
 
 ## ビルド情報の表示
 
