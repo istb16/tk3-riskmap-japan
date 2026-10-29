@@ -11,7 +11,7 @@ updates:
     # TypeScript は 6 系に据え置き（TS 7 を阻んでいるライブラリは CLAUDE.md 参照）
     ignore:
       - dependency-name: typescript
-        versions: ['>=7']
+        versions: ['>=6.1']
 
   - package-ecosystem: github-actions
     directory: /

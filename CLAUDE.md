@@ -621,7 +621,7 @@ firebase deploy --only hosting
 - `svelte-check` 4.x（と内部の `svelte2tsx`）— peerDependencies が `typescript: ^5.0.0 || ^6.0.0`
 - `typescript-eslint` 8.x（`@typescript-eslint/*` 一式）— peerDependencies が `typescript: >=4.8.4 <6.1.0`
 
-確認は `npm view <pkg> peerDependencies`。Dependabot は `typescript` の 7 以上を無視する設定にしてある
+確認は `npm view <pkg> peerDependencies`。Dependabot は `typescript` の 6.1 以上を無視する設定にしてある（typescript-eslint の peer が `<6.1.0` のため）
 （`.github/dependabot.yml`）。上げるときはそこも外す
 
 ## 重要な設計制約
