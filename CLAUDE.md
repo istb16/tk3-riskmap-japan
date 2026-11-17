@@ -516,24 +516,8 @@ jsdom でも書けるアサーションを持ち込まない。具体的には:
 
 ## Firebase Hostingデプロイ手順
 
-```bash
-# 1. Firebase CLIインストール（初回のみ）
-npm install -g firebase-tools
-
-# 2. Firebaseにログイン（初回のみ）
-firebase login
-
-# 3. プロジェクト初期化（初回のみ）
-firebase init hosting
-# → public: build
-# → SPA: Yes
-
-# 4. ビルド＆デプロイ
-npm run build
-firebase deploy --only hosting
-```
-
-**通常は `main` への push で GitHub Actions が自動デプロイする**（`.github/workflows/deploy.yml`）。
+**デプロイは GitHub Actions だけで行う。ローカルからはデプロイしない**（firebase-tools はローカルに入れない）。
+`main` への push で GitHub Actions が自動デプロイする（`.github/workflows/deploy.yml`）。すぐ出し直したいときは Actions の画面から手動で実行する（`gh workflow run deploy.yml`）。
 PR では `.github/workflows/ci.yml` が、下の 2 つのジョブと同じ確かめをデプロイなしで流す（`verify` = deploy ジョブの Lint〜Build、`browser-tests` = ブラウザテスト）。
 ジョブは2つで、並列に走る。
 
@@ -565,8 +549,11 @@ PR では `.github/workflows/ci.yml` が、下の 2 つのジョブと同じ確�
   firebase-tools 15.34.1 時点で、デプロイ前に Firebase Hosting API の有効状態を
   Service Usage API に問い合わせるようになっており、権限がないと
   `HTTP Error: 403, Permission denied to get service [firebasehosting.googleapis.com]` で落ちる
-  （15.28.1 では問い合わせていなかった。`@latest` で取得しているので気づかず切り替わる）。
+  （15.28.1 では問い合わせていなかった）。
   サービスアカウントを作り直すときは Hosting 系のロールと合わせて付ける
+- **firebase-tools の版は `deploy.yml` で固定している**（`npx firebase-tools@15.36.0`）。
+  以前は `@latest` で、新しい版の挙動の変化（上の 403 など）に気づかず切り替わっていた。
+  上げるときは版を書き換え、デプロイが通ることを確かめる
 - **`deploy` ジョブの Node は 24 に留めている**（`browser-tests` は 26）。firebase-tools が依存する
   `superstatic` が engines で `"20 || 22 || 24"` を要求し、26 だと `npx` が `EBADENGINE` で落ちる。
   superstatic が対応したら揃えて上げる

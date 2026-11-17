@@ -126,22 +126,7 @@ npm test
 
 ## Firebase Hosting デプロイ
 
-```bash
-# Firebase CLI インストール（初回のみ）
-npm install -g firebase-tools
-
-# Firebase にログイン（初回のみ）
-firebase login
-
-# プロジェクト初期化（初回のみ）
-firebase init hosting
-# → public ディレクトリ: build
-# → SPA として設定: Yes
-
-# ビルド＆デプロイ
-npm run build
-firebase deploy --only hosting
-```
+デプロイは GitHub Actions だけで行います（ローカルからはデプロイしません）。`main` ブランチへのプッシュで `.github/workflows/deploy.yml` がビルド・テストのあと Firebase Hosting へデプロイします。手動で出し直すときは Actions の画面から実行してください（`gh workflow run deploy.yml`）。
 
 ## 設計制約
 
