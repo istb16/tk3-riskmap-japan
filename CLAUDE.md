@@ -534,6 +534,7 @@ firebase deploy --only hosting
 ```
 
 **通常は `main` への push で GitHub Actions が自動デプロイする**（`.github/workflows/deploy.yml`）。
+PR では `.github/workflows/ci.yml` が、下の 2 つのジョブと同じ確かめをデプロイなしで流す（`verify` = deploy ジョブの Lint〜Build、`browser-tests` = ブラウザテスト）。
 ジョブは2つで、並列に走る。
 
 | ジョブ          | 内容                                                     | デプロイを止めるか |
