@@ -1189,8 +1189,18 @@
 			display: none;
 		}
 
+		/*
+		 * 画面の高さに収める。min-height のままだと、ランキング（64地域）の高さで
+		 * content-area ごと伸び、横に並ぶ地図も数千px になって凡例（地図の下端）が
+		 * 画面の外へ出る。高さを決めて、ランキングだけを中でスクロールさせる。
+		 */
+		.app {
+			height: 100dvh;
+		}
+
 		.content-area {
 			flex-direction: row;
+			min-height: 0;
 		}
 
 		.ranking-panel {
