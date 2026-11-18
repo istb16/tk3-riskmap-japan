@@ -176,10 +176,10 @@
 				className: '',
 				html: `<div style="
 					width:${size}px;height:${size}px;border-radius:50%;
-					background:var(${band.colorVar});border:2px solid rgba(255,255,255,0.25);
-					box-shadow:0 2px 8px rgba(0,0,0,0.25);
+					background:var(${band.colorVar});border:2px solid var(--marker-ring);
+					box-shadow:0 2px 8px var(--marker-shadow);
 					display:flex;align-items:center;justify-content:center;
-					color:#ffffff;font-weight:700;font-size:${band.markerFontPx}px;font-family:monospace;
+					color:var(--on-risk);font-weight:700;font-size:${band.markerFontPx}px;font-family:var(--tk-font-mono);
 					cursor:pointer;
 				">${region.riskScore}</div>`,
 				iconSize: [size, size],
@@ -378,11 +378,11 @@
 
 <div class="app">
 	<!-- Header -->
-	<header>
-		<div class="header-inner">
-			<div class="header-left">
-				<span class="live-badge">LIVE</span>
-				<h1>JAPAN RISK MAP</h1>
+	<header class="app-header">
+		<div class="tk-header">
+			<div class="tk-header__home">
+				<img class="tk-header__icon" src="/icon.svg" alt="" width="32" height="32" />
+				<h1 class="tk-header__name">JAPAN RISK MAP</h1>
 				<!--
 					ビルド情報。どのデプロイが公開されているかを画面から判別するために出す。
 					ヘッダー右のデータ取得時刻（`Updated:`）とは別物なので、
@@ -392,7 +392,8 @@
 					{buildLabel()}
 				</span>
 			</div>
-			<div class="header-right">
+			<div class="tk-header__end">
+				<span class="live-badge">LIVE</span>
 				{#if $loading}
 					<span class="status-text blink">更新中</span>
 				{:else if $lastUpdated}
@@ -837,26 +838,14 @@
 			{/each}
 		</div>
 	{/if}
+
+	<footer class="tk-footer">
+		<a href="https://tk3.biz/">tk3.biz</a>
+	</footer>
 </div>
 
 <style>
-	/* ─── Design tokens ─── */
-	:root {
-		--bg: #f0f4f8;
-		--surface: #ffffff;
-		--surface-hi: #e5edf6;
-		--border: #c8d8e8;
-		--border-hi: #a0bad0;
-		--safe: #16a34a;
-		--caution: #ca8a04;
-		--alert: #ea580c;
-		--danger: #dc2626;
-		--text: #0a1828;
-		--text-2: #445e78;
-		--text-dim: #8aaabe;
-		--live: #1666cc;
-		--mono: 'Courier New', 'SF Mono', 'Consolas', monospace;
-	}
+	/* 色の変数は src/app.css（アプリ固有）と tk-base.css（--tk-*）にある */
 
 	:global(*) {
 		box-sizing: border-box;
@@ -865,9 +854,6 @@
 	}
 
 	:global(body) {
-		font-family: -apple-system, 'Hiragino Sans', 'Noto Sans JP', 'Yu Gothic UI', sans-serif;
-		background: var(--bg);
-		color: var(--text);
 		min-height: 100vh;
 	}
 
@@ -878,37 +864,26 @@
 		flex-direction: column;
 	}
 
-	/* ─── Header ─── */
-	header {
-		background: var(--surface);
-		border-bottom: 1px solid var(--border);
+	/* ─── Header（共通の .tk-header に地震計の帯を足して上に固定する） ─── */
+	.app-header {
 		position: sticky;
 		top: 0;
 		z-index: 200;
+		background: var(--tk-surface);
+		border-bottom: 1px solid var(--tk-line);
 	}
 
-	.header-inner {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 10px 16px;
-		gap: 12px;
-	}
-
-	.header-left {
-		display: flex;
-		align-items: center;
-		gap: 9px;
-		min-width: 0;
+	.app-header .tk-header {
+		border-block-end: none;
 	}
 
 	.live-badge {
-		font-family: var(--mono);
+		font-family: var(--tk-font-mono);
 		font-size: 10px;
 		font-weight: 700;
 		letter-spacing: 0.12em;
-		color: var(--live);
-		border: 1px solid var(--live);
+		color: var(--tk-blue);
+		border: 1px solid var(--tk-blue);
 		padding: 2px 5px;
 		border-radius: 2px;
 		flex-shrink: 0;
@@ -930,27 +905,10 @@
 		}
 	}
 
-	h1 {
-		font-size: 14px;
-		font-weight: 700;
-		color: var(--text);
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		letter-spacing: -0.01em;
-	}
-
-	.header-right {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		flex-shrink: 0;
-	}
-
 	.status-text {
-		font-family: var(--mono);
+		font-family: var(--tk-font-mono);
 		font-size: 11px;
-		color: var(--text-2);
+		color: var(--tk-body);
 		white-space: nowrap;
 	}
 
@@ -962,9 +920,9 @@
 	 * （デプロイの確認はデスクトップで行う）。
 	 */
 	.build-info {
-		font-family: var(--mono);
+		font-family: var(--tk-font-mono);
 		font-size: 10px;
-		color: var(--text-2);
+		color: var(--tk-body);
 		opacity: 0.6;
 		white-space: nowrap;
 		flex-shrink: 0;
@@ -977,6 +935,25 @@
 		}
 	}
 
+	/*
+	 * 狭い画面ではサイト名を切らさないことを優先する。LIVE の印は落とし（データ取得時刻が
+	 * 同じことを語る）、余白とサイト名の文字を少し詰める。
+	 */
+	@media (max-width: 419px) {
+		.live-badge {
+			display: none;
+		}
+
+		.app-header .tk-header {
+			gap: 8px;
+			padding-inline: 12px;
+		}
+
+		.app-header .tk-header__name {
+			font-size: 1rem;
+		}
+	}
+
 	.blink {
 		@media (prefers-reduced-motion: no-preference) {
 			animation: blink 1s steps(1) infinite;
@@ -985,8 +962,8 @@
 
 	.share-btn {
 		background: transparent;
-		border: 1px solid var(--border-hi);
-		color: var(--text-2);
+		border: 1px solid var(--line-strong);
+		color: var(--tk-body);
 		padding: 5px 12px;
 		border-radius: 4px;
 		font-size: 12px;
@@ -998,11 +975,11 @@
 		white-space: nowrap;
 	}
 	.share-btn:hover {
-		border-color: var(--text-2);
-		color: var(--text);
+		border-color: var(--tk-body);
+		color: var(--tk-ink);
 	}
 	.share-btn:focus-visible {
-		outline: 2px solid var(--live);
+		outline: 2px solid var(--tk-blue);
 		outline-offset: 2px;
 	}
 
@@ -1010,8 +987,8 @@
 	.seismo-wrap {
 		height: 26px;
 		overflow: hidden;
-		background: var(--bg);
-		border-top: 1px solid var(--border);
+		background: var(--tk-bg);
+		border-top: 1px solid var(--tk-line);
 	}
 
 	.seismo-inner {
@@ -1053,8 +1030,8 @@
 	/* ─── Tab Nav (mobile only; hidden on desktop) ─── */
 	.tab-nav {
 		display: flex;
-		background: var(--surface);
-		border-bottom: 1px solid var(--border);
+		background: var(--tk-surface);
+		border-bottom: 1px solid var(--tk-line);
 	}
 
 	/* 地域フィルタ。両パネルの外にあるので横幅いっぱい（絞り込みは地図にも効く） */
@@ -1063,8 +1040,8 @@
 		align-items: center;
 		gap: 10px;
 		padding: 8px 12px;
-		background: var(--surface);
-		border-bottom: 1px solid var(--border);
+		background: var(--tk-surface);
+		border-bottom: 1px solid var(--tk-line);
 	}
 
 	.filter-field {
@@ -1074,13 +1051,13 @@
 		align-items: center;
 		gap: 6px;
 		padding: 0 10px;
-		background: var(--bg);
-		border: 1px solid var(--border);
+		background: var(--tk-bg);
+		border: 1px solid var(--tk-line);
 		border-radius: 8px;
 	}
 
 	.filter-field:focus-within {
-		border-color: var(--border-hi);
+		border-color: var(--line-strong);
 	}
 
 	.filter-icon {
@@ -1095,7 +1072,7 @@
 		padding: 8px 0;
 		border: none;
 		background: transparent;
-		color: var(--text);
+		color: var(--tk-ink);
 		/* 16px 未満にすると iOS Safari がフォーカス時にページを勝手にズームする。
 			プレースホルダが末尾で切れるのは許容し、ズームを避けるほうを採る */
 		font-size: 16px;
@@ -1115,7 +1092,7 @@
 		flex-shrink: 0;
 		border: none;
 		background: transparent;
-		color: var(--text-2);
+		color: var(--tk-body);
 		font-size: 13px;
 		cursor: pointer;
 		padding: 4px;
@@ -1123,14 +1100,14 @@
 	}
 
 	.filter-clear:hover {
-		color: var(--text);
+		color: var(--tk-ink);
 	}
 
 	.filter-count {
 		flex-shrink: 0;
 		font-size: 12px;
 		font-weight: 700;
-		color: var(--text-2);
+		color: var(--tk-body);
 		font-variant-numeric: tabular-nums;
 	}
 
@@ -1138,7 +1115,7 @@
 		padding: 20px 12px;
 		text-align: center;
 		font-size: 13px;
-		color: var(--text-2);
+		color: var(--tk-body);
 	}
 
 	.tab-btn {
@@ -1146,7 +1123,7 @@
 		padding: 11px;
 		border: none;
 		background: transparent;
-		color: var(--text-2);
+		color: var(--tk-body);
 		font-size: 13px;
 		font-weight: 600;
 		cursor: pointer;
@@ -1157,22 +1134,22 @@
 		letter-spacing: 0.02em;
 	}
 	.tab-btn.active {
-		color: var(--text);
-		border-bottom-color: var(--live);
+		color: var(--tk-ink);
+		border-bottom-color: var(--tk-blue);
 	}
 	.tab-btn:focus-visible {
-		outline: 2px solid var(--live);
+		outline: 2px solid var(--tk-blue);
 		outline-offset: -2px;
 	}
 
 	/* ─── Error ─── */
 	.error-banner {
-		background: #fee2e2;
-		color: #991b1b;
+		background: var(--severe-chip-bg);
+		color: var(--tk-danger);
 		padding: 8px 16px;
 		font-size: 13px;
 		text-align: center;
-		border-bottom: 1px solid #fecaca;
+		border-bottom: 1px solid var(--severe-line);
 	}
 
 	/* ─── Content area: mobile = single column, desktop = side by side ─── */
@@ -1218,7 +1195,7 @@
 			display: flex !important;
 			width: clamp(340px, 32vw, 480px);
 			flex-shrink: 0;
-			border-right: 1px solid var(--border);
+			border-right: 1px solid var(--tk-line);
 			overflow-y: auto;
 		}
 
@@ -1242,15 +1219,15 @@
 		justify-content: center;
 		padding: 60px 20px;
 		gap: 12px;
-		color: var(--text-2);
+		color: var(--tk-body);
 		flex: 1;
 	}
 
 	.spinner {
 		width: 36px;
 		height: 36px;
-		border: 2px solid var(--border);
-		border-top-color: var(--live);
+		border: 2px solid var(--tk-line);
+		border-top-color: var(--tk-blue);
 		border-radius: 50%;
 		animation: spin 0.8s linear infinite;
 	}
@@ -1263,7 +1240,7 @@
 
 	.loading-sub {
 		font-size: 12px;
-		color: var(--text-dim);
+		color: var(--tk-muted);
 	}
 
 	/* ─── Top Alert Banner ─── */
@@ -1272,7 +1249,7 @@
 		padding: 18px 16px 16px;
 		border-radius: 12px;
 		text-align: center;
-		color: #fff;
+		color: var(--on-risk);
 	}
 
 	.top-rank {
@@ -1293,7 +1270,7 @@
 	}
 
 	.top-score {
-		font-family: var(--mono);
+		font-family: var(--tk-font-mono);
 		font-size: 64px;
 		font-weight: 700;
 		line-height: 1;
@@ -1316,7 +1293,7 @@
 	}
 
 	.reason-chip {
-		background: rgba(0, 0, 0, 0.25);
+		background: var(--on-risk-chip);
 		padding: 4px 12px;
 		border-radius: 20px;
 		font-size: 12px;
@@ -1358,20 +1335,20 @@
 		align-items: center;
 		gap: 12px;
 		padding: var(--row-pad-y) 14px;
-		background: var(--surface);
-		border: 1px solid var(--border);
+		background: var(--tk-surface);
+		border: 1px solid var(--tk-line);
 		border-radius: 10px;
 		cursor: pointer;
-		color: var(--text);
+		color: var(--tk-ink);
 		font: inherit;
 		text-align: left;
 		transition: background 0.15s;
 	}
 	.rank-item:hover {
-		background: var(--surface-hi);
+		background: var(--tk-surface-2);
 	}
 	.rank-item:focus-visible {
-		outline: 2px solid var(--live);
+		outline: 2px solid var(--tk-blue);
 		outline-offset: -2px;
 	}
 
@@ -1406,7 +1383,7 @@
 		background: transparent;
 		border: 1px solid transparent;
 		border-radius: 10px;
-		color: var(--text-2);
+		color: var(--tk-body);
 		opacity: 0.35;
 		cursor: pointer;
 		transition:
@@ -1417,18 +1394,18 @@
 
 	.pin-btn:hover {
 		opacity: 1;
-		background: var(--surface-hi);
+		background: var(--tk-surface-2);
 	}
 
 	.pin-btn:focus-visible {
-		outline: 2px solid var(--live);
+		outline: 2px solid var(--tk-blue);
 		outline-offset: -2px;
 		opacity: 1;
 	}
 
 	.pin-btn.pin-on {
 		opacity: 1;
-		color: var(--live);
+		color: var(--tk-blue);
 	}
 
 	/* ─── セクション見出し（お気に入り / 全国ランキング） ─── */
@@ -1447,15 +1424,15 @@
 		font-size: 12px;
 		font-weight: 800;
 		letter-spacing: 0.08em;
-		color: var(--text-2);
+		color: var(--tk-body);
 	}
 
 	.section-count {
-		font-family: var(--mono);
+		font-family: var(--tk-font-mono);
 		font-size: 11px;
 		font-weight: 700;
-		color: var(--text-2);
-		background: var(--surface-hi);
+		color: var(--tk-body);
+		background: var(--tk-surface-2);
 		border-radius: 10px;
 		padding: 1px 7px;
 		font-variant-numeric: tabular-nums;
@@ -1463,7 +1440,7 @@
 
 	.section-sep {
 		border: none;
-		border-top: 1px solid var(--border);
+		border-top: 1px solid var(--tk-line);
 		margin: 10px 14px 0;
 	}
 
@@ -1475,11 +1452,11 @@
 		padding: 14px 14px 0;
 		font-size: 12px;
 		line-height: 1.5;
-		color: var(--text-2);
+		color: var(--tk-body);
 	}
 
 	.rank-num {
-		font-family: var(--mono);
+		font-family: var(--tk-font-mono);
 		font-size: 18px;
 		font-weight: 700;
 		min-width: 34px;
@@ -1532,7 +1509,7 @@
 
 	.rank-reasons span {
 		font-size: 11px;
-		color: var(--text-2);
+		color: var(--tk-body);
 		line-height: 1.4;
 	}
 
@@ -1557,7 +1534,7 @@
 	}
 
 	.rank-score {
-		font-family: var(--mono);
+		font-family: var(--tk-font-mono);
 		font-size: 28px;
 		font-weight: 700;
 		line-height: 1;
@@ -1574,7 +1551,7 @@
 	.score-bar-bg {
 		width: 56px;
 		height: 3px;
-		background: var(--border);
+		background: var(--tk-line);
 		border-radius: 2px;
 		overflow: hidden;
 		margin-top: 2px;
@@ -1591,6 +1568,41 @@
 		flex: 1;
 		min-height: calc(100svh - 150px);
 		width: 100%;
+		background: var(--map-bg);
+	}
+
+	/*
+	 * 地図の配色。タイル（OpenStreetMap）は明るい絵しかないので、暗い配色では
+	 * 反転して暗くする（--map-tile-filter）。マーカーはタイルの外なので反転されない。
+	 * Leaflet の操作部品と出典表記も面の色に合わせる。
+	 */
+	.leaflet-map :global(.leaflet-tile-pane) {
+		filter: var(--map-tile-filter);
+	}
+
+	.leaflet-map :global(.leaflet-bar a) {
+		background-color: var(--tk-surface);
+		color: var(--tk-ink);
+		border-bottom-color: var(--tk-line);
+	}
+
+	.leaflet-map :global(.leaflet-bar a:hover),
+	.leaflet-map :global(.leaflet-bar a:focus-visible) {
+		background-color: var(--tk-surface-2);
+	}
+
+	.leaflet-map :global(.leaflet-bar a.leaflet-disabled) {
+		background-color: var(--tk-surface-2);
+		color: var(--tk-muted);
+	}
+
+	.leaflet-map :global(.leaflet-control-attribution) {
+		background: var(--map-overlay-bg);
+		color: var(--tk-body);
+	}
+
+	.leaflet-map :global(.leaflet-control-attribution a) {
+		color: var(--tk-blue);
 	}
 
 	.map-legend {
@@ -1598,16 +1610,16 @@
 		bottom: 16px;
 		left: 50%;
 		transform: translateX(-50%);
-		background: rgba(255, 255, 255, 0.95);
-		border: 1px solid var(--border);
+		background: var(--map-overlay-bg);
+		border: 1px solid var(--tk-line);
 		border-radius: 4px;
 		padding: 7px 14px;
 		display: flex;
 		gap: 14px;
 		z-index: 1000;
-		font-family: var(--mono);
+		font-family: var(--tk-font-mono);
 		font-size: 11px;
-		color: var(--text-2);
+		color: var(--tk-body);
 		white-space: nowrap;
 	}
 
@@ -1635,14 +1647,14 @@
 	.detail-backdrop {
 		position: absolute;
 		inset: 0;
-		background: rgba(0, 0, 0, 0.7);
+		background: var(--backdrop);
 		border: none;
 		cursor: pointer;
 	}
 
 	.detail-panel {
-		background: var(--surface);
-		border: 1px solid var(--border);
+		background: var(--tk-surface);
+		border: 1px solid var(--tk-line);
 		border-bottom: none;
 		width: 100%;
 		max-width: 640px;
@@ -1658,9 +1670,9 @@
 		position: absolute;
 		top: 14px;
 		right: 14px;
-		background: var(--surface-hi);
-		border: 1px solid var(--border);
-		color: var(--text-2);
+		background: var(--tk-surface-2);
+		border: 1px solid var(--tk-line);
+		color: var(--tk-body);
 		width: 28px;
 		height: 28px;
 		border-radius: 4px;
@@ -1671,10 +1683,10 @@
 		justify-content: center;
 	}
 	.close-btn:hover {
-		color: var(--text);
+		color: var(--tk-ink);
 	}
 	.close-btn:focus-visible {
-		outline: 2px solid var(--live);
+		outline: 2px solid var(--tk-blue);
 		outline-offset: 2px;
 	}
 
@@ -1684,7 +1696,7 @@
 		gap: 14px;
 		padding-bottom: 16px;
 		margin-bottom: 16px;
-		border-bottom: 1px solid var(--border);
+		border-bottom: 1px solid var(--tk-line);
 	}
 
 	.detail-score-block {
@@ -1693,7 +1705,7 @@
 	}
 
 	.detail-score {
-		font-family: var(--mono);
+		font-family: var(--tk-font-mono);
 		font-size: 52px;
 		font-weight: 700;
 		font-variant-numeric: tabular-nums;
@@ -1734,10 +1746,10 @@
 		align-items: center;
 		gap: 5px;
 		padding: 6px 12px;
-		background: var(--surface-hi);
-		border: 1px solid var(--border);
+		background: var(--tk-surface-2);
+		border: 1px solid var(--tk-line);
 		border-radius: 20px;
-		color: var(--text-2);
+		color: var(--tk-body);
 		font: inherit;
 		font-size: 12px;
 		font-weight: 700;
@@ -1748,17 +1760,17 @@
 	}
 
 	.detail-pin-btn:hover {
-		color: var(--text);
+		color: var(--tk-ink);
 	}
 
 	.detail-pin-btn:focus-visible {
-		outline: 2px solid var(--live);
+		outline: 2px solid var(--tk-blue);
 		outline-offset: 2px;
 	}
 
 	.detail-pin-btn.pin-on {
-		color: var(--live);
-		border-color: var(--live);
+		color: var(--tk-blue);
+		border-color: var(--tk-blue);
 	}
 
 	.detail-city {
@@ -1780,11 +1792,11 @@
 	}
 
 	.section-label {
-		font-family: var(--mono);
+		font-family: var(--tk-font-mono);
 		font-size: 10px;
 		font-weight: 700;
 		letter-spacing: 0.12em;
-		color: var(--text-dim);
+		color: var(--tk-muted);
 		text-transform: uppercase;
 		margin-bottom: 7px;
 		display: flex;
@@ -1794,7 +1806,7 @@
 
 	/* ─── Score breakdown ─── */
 	.breakdown-table {
-		border: 1px solid var(--border);
+		border: 1px solid var(--tk-line);
 		border-radius: 6px;
 		overflow: hidden;
 	}
@@ -1804,23 +1816,23 @@
 		align-items: baseline;
 		justify-content: space-between;
 		padding: 6px 12px;
-		border-bottom: 1px solid var(--border);
+		border-bottom: 1px solid var(--tk-line);
 		gap: 8px;
-		background: var(--surface);
+		background: var(--tk-surface);
 	}
 
 	.breakdown-label {
 		font-size: 13px;
-		color: var(--text);
+		color: var(--tk-ink);
 		flex: 1;
 		min-width: 0;
 	}
 
 	.breakdown-pts {
-		font-family: var(--mono);
+		font-family: var(--tk-font-mono);
 		font-size: 13px;
 		font-weight: 700;
-		color: #1d4ed8;
+		color: var(--tk-blue);
 		white-space: nowrap;
 		flex-shrink: 0;
 	}
@@ -1828,9 +1840,9 @@
 	.breakdown-note {
 		padding: 2px 12px 5px;
 		font-size: 11px;
-		color: var(--text-dim);
-		border-bottom: 1px solid var(--border);
-		background: var(--surface-hi);
+		color: var(--tk-muted);
+		border-bottom: 1px solid var(--tk-line);
+		background: var(--tk-surface-2);
 		font-style: italic;
 	}
 
@@ -1839,21 +1851,21 @@
 		justify-content: space-between;
 		align-items: center;
 		padding: 8px 12px;
-		background: var(--surface-hi);
-		border-top: 1px solid var(--border-hi);
+		background: var(--tk-surface-2);
+		border-top: 1px solid var(--line-strong);
 	}
 
 	.breakdown-total-label {
-		font-family: var(--mono);
+		font-family: var(--tk-font-mono);
 		font-size: 10px;
 		font-weight: 700;
 		letter-spacing: 0.1em;
-		color: var(--text-dim);
+		color: var(--tk-muted);
 		text-transform: uppercase;
 	}
 
 	.breakdown-total-val {
-		font-family: var(--mono);
+		font-family: var(--tk-font-mono);
 		font-size: 18px;
 		font-weight: 700;
 		font-variant-numeric: tabular-nums;
@@ -1863,7 +1875,7 @@
 	.breakdown-total-val small {
 		font-size: 10px;
 		font-weight: 400;
-		color: var(--text-dim);
+		color: var(--tk-muted);
 		margin-left: 3px;
 		letter-spacing: 0;
 	}
@@ -1871,18 +1883,18 @@
 	.detail-footer {
 		display: flex;
 		justify-content: space-between;
-		font-family: var(--mono);
+		font-family: var(--tk-font-mono);
 		font-size: 10px;
-		color: var(--text-dim);
+		color: var(--tk-muted);
 		padding-top: 10px;
-		border-top: 1px solid var(--border);
+		border-top: 1px solid var(--tk-line);
 		margin-top: 4px;
 	}
 
 	/* ─── JMA alert badge in rank list ─── */
 	.jma-alert-badge {
 		font-size: 13px;
-		color: #b45309;
+		color: var(--warn-icon);
 		cursor: default;
 		line-height: 1;
 		user-select: none;
@@ -1891,14 +1903,14 @@
 	/* ─── JMA fixed tooltip ─── */
 	.jma-fixed-tooltip {
 		position: fixed;
-		background: #1e293b;
-		color: #e2e8f0;
-		border: 1px solid #334155;
+		background: var(--tooltip-bg);
+		color: var(--tooltip-text);
+		border: 1px solid var(--tooltip-line);
 		border-radius: 8px;
 		padding: 10px 14px;
 		z-index: 9999;
 		max-width: 320px;
-		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+		box-shadow: 0 4px 20px var(--tooltip-shadow);
 		pointer-events: none;
 		display: flex;
 		flex-direction: column;
@@ -1914,7 +1926,7 @@
 	.jma-tooltip-name {
 		font-size: 11px;
 		font-weight: 700;
-		color: #94a3b8;
+		color: var(--tooltip-sub);
 		letter-spacing: 0.02em;
 	}
 
@@ -1927,16 +1939,16 @@
 	.jma-tooltip-chip {
 		font-size: 11px;
 		font-weight: 600;
-		background: #fde68a;
-		color: #78350f;
+		background: var(--warn-chip-bg);
+		color: var(--warn-chip-text);
 		border-radius: 3px;
 		padding: 2px 7px;
 	}
 
 	/* ─── JMA alert section in detail panel ─── */
 	.jma-alert-section {
-		background: #fffbeb;
-		border: 1px solid #fde68a;
+		background: var(--warn-bg);
+		border: 1px solid var(--warn-line);
 		border-radius: 8px;
 		padding: 12px;
 		margin-bottom: 14px;
@@ -1956,7 +1968,7 @@
 	.jma-alert-title {
 		font-size: 11px;
 		font-weight: 700;
-		color: #92400e;
+		color: var(--warn-text);
 		letter-spacing: 0.06em;
 		text-transform: uppercase;
 	}
@@ -1969,13 +1981,13 @@
 	}
 
 	.jma-area-row + .jma-area-row {
-		border-top: 1px solid rgba(253, 230, 138, 0.6);
+		border-top: 1px solid var(--warn-line);
 	}
 
 	.jma-area-name {
 		font-size: 12px;
 		font-weight: 700;
-		color: #78350f;
+		color: var(--warn-text-strong);
 	}
 
 	.jma-chips {
@@ -1989,28 +2001,28 @@
 		font-weight: 600;
 		padding: 2px 8px;
 		border-radius: 3px;
-		background: #fef3c7;
-		color: #92400e;
-		border: 1px solid #fde68a;
+		background: var(--warn-chip-bg);
+		color: var(--warn-chip-text);
+		border: 1px solid var(--warn-chip-line);
 	}
 
 	.jma-chip-special {
-		background: #fee2e2;
-		color: #991b1b;
-		border-color: #fecaca;
+		background: var(--severe-chip-bg);
+		color: var(--severe-text);
+		border-color: var(--severe-line);
 	}
 
 	.jma-chip-warning {
-		background: #fef3c7;
-		color: #92400e;
-		border-color: #fde68a;
+		background: var(--warn-chip-bg);
+		color: var(--warn-chip-text);
+		border-color: var(--warn-chip-line);
 	}
 
 	/* 危険警報（警戒レベル4相当）— 警報と特別警報の中間 */
 	.jma-chip-danger {
-		background: #ffedd5;
-		color: #9a3412;
-		border-color: #fdba74;
+		background: var(--danger-chip-bg);
+		color: var(--danger-chip-text);
+		border-color: var(--danger-chip-line);
 	}
 
 	/* ─── 観測データ grid ─── */
@@ -2022,8 +2034,8 @@
 	}
 
 	.obs-cell {
-		background: var(--bg);
-		border: 1px solid var(--border);
+		background: var(--tk-bg);
+		border: 1px solid var(--tk-line);
 		padding: 9px 11px;
 		border-radius: 6px;
 		display: flex;
@@ -2033,7 +2045,7 @@
 
 	.obs-label {
 		font-size: 11px;
-		color: var(--text-2);
+		color: var(--tk-body);
 	}
 
 	.obs-val {
@@ -2045,7 +2057,7 @@
 	.obs-val small {
 		font-size: 11px;
 		font-weight: 400;
-		color: var(--text-2);
+		color: var(--tk-body);
 		margin-left: 1px;
 	}
 
@@ -2065,13 +2077,13 @@
 	}
 
 	.hazard-tsunami {
-		background: #eff6ff;
-		border-color: #bfdbfe;
+		background: var(--tsunami-bg);
+		border-color: var(--tsunami-line);
 	}
 
 	.hazard-volcano {
-		background: #fef2f2;
-		border-color: #fecaca;
+		background: var(--severe-bg);
+		border-color: var(--severe-line);
 	}
 
 	.hazard-icon {
@@ -2094,23 +2106,23 @@
 	}
 
 	.hazard-tsunami .hazard-title {
-		color: #1e40af;
+		color: var(--tsunami-text);
 	}
 
 	.hazard-volcano .hazard-title {
-		color: #991b1b;
+		color: var(--severe-text);
 	}
 
 	.hazard-sub {
 		font-size: 12px;
-		color: var(--text-2);
+		color: var(--tk-body);
 		line-height: 1.4;
 	}
 
 	/* ─── 地震カード ─── */
 	.eq-card {
-		background: var(--bg);
-		border: 1px solid var(--border);
+		background: var(--tk-bg);
+		border: 1px solid var(--tk-line);
 		border-radius: 6px;
 		padding: 10px 12px;
 		display: flex;
@@ -2128,7 +2140,7 @@
 	.eq-label {
 		font-size: 12px;
 		font-weight: 700;
-		color: var(--text-2);
+		color: var(--tk-body);
 	}
 
 	.eq-shindo {
@@ -2142,8 +2154,8 @@
 	.eq-badge {
 		font-size: 10px;
 		font-weight: 700;
-		color: var(--text-2);
-		border: 1px solid var(--border-hi);
+		color: var(--tk-body);
+		border: 1px solid var(--line-strong);
 		border-radius: 3px;
 		padding: 1px 5px;
 		letter-spacing: 0.04em;
@@ -2151,28 +2163,25 @@
 
 	.eq-info {
 		font-size: 12px;
-		color: var(--text-2);
+		color: var(--tk-body);
 	}
 
 	.eq-time {
-		font-family: var(--mono);
+		font-family: var(--tk-font-mono);
 		font-size: 11px;
-		color: var(--text-dim);
+		color: var(--tk-muted);
 	}
 
 	/* ─── no risk note ─── */
 	.no-risk-note {
 		font-size: 13px;
-		color: var(--text-dim);
+		color: var(--tk-muted);
 		text-align: center;
 		padding: 10px 0 14px;
 	}
 
 	/* ─── Tablet tweaks ─── */
 	@media (min-width: 640px) {
-		h1 {
-			font-size: 15px;
-		}
 		.top-alert {
 			margin: 14px 14px 6px;
 		}

@@ -53,13 +53,9 @@
 | PM2.5 ≥50μg/m³               | +25  |
 | PM2.5 ≥25μg/m³               | +10  |
 
-## カラーパレット
+## 見た目
 
-| 危険度 | スコア  | 色              |
-| ------ | ------- | --------------- |
-| 安全   | 0〜30   | `#22c55e`（緑） |
-| 注意   | 31〜60  | `#f59e0b`（黄） |
-| 危険   | 61〜100 | `#ef4444`（赤） |
+tk3.biz のアプリで共通の土台（`src/lib/styles/tk-base.css`）を使い、端末の設定に従って明るい配色と暗い配色を切り替える。危険度の色と決まりは [CLAUDE.md のカラーパレット](CLAUDE.md#カラーパレット) を参照。
 
 ## ディレクトリ構成
 
@@ -82,7 +78,7 @@ src/
       settled.ts        # Promise.allSettled ユーティリティ
   routes/
     +layout.ts          # prerender=true, ssr=false
-    +layout.svelte      # favicon 注入
+    +layout.svelte      # 共通の土台と app.css の読み込み
     +page.svelte        # メインUI（ランキング + 地図 + 詳細パネル）
 ```
 

@@ -1,0 +1,2 @@
+# 共通の土台（tk3 apps base）は元の版を手を加えずに写すので、整形しない
+src/lib/styles/tk-base.css

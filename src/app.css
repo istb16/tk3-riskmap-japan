@@ -1,0 +1,115 @@
+/*
+ * アプリ全体の色と下地。共通の土台 `#lib/styles/tk-base.css`（tk3 apps base）の後に読み込む。
+ *
+ * 地・面・文字・線は土台の `--tk-*` をそのまま使い、ここではアプリ固有の色だけを持つ。
+ * 固有の色は明るい配色と暗い配色の両方の値を持ち、端末の設定（prefers-color-scheme）で切り替える。
+ * `light-dark()` は使わない（まだ新しく使えるようになった段階の機能のため）。
+ *
+ * コントラストの基準: 文字は背景に対して 4.5:1 以上、線や図形は 3:1 以上。
+ */
+
+:root {
+	/* アクセントはアイコンの主色（赤）。操作部品の色は危険度の赤と紛れないよう --tk-blue を使う */
+	--tk-accent: var(--tk-red);
+
+	/*
+	 * 危険度の帯（RISK_BANDS の colorVar）。面の上の文字・地図の背景の上の図形として読める濃さにし、
+	 * 塗りの上に乗せる文字は --on-risk（明るい配色では白）。
+	 */
+	--safe: #1a7340;
+	--caution: #8a6100;
+	--alert: #c2410c;
+	--danger: #b91c1c;
+	--on-risk: #ffffff;
+	/* 危険度の色で塗ったバナーの中の理由チップ */
+	--on-risk-chip: rgb(0 0 0 / 0.25);
+
+	/* 強めの線（入力欄のフォーカス・合計行の区切りなど） */
+	--line-strong: #9aa0ac;
+
+	/* 地図。暗い配色ではタイルを反転して暗くし、マーカーの縁は地の色に合わせる */
+	--map-tile-filter: none;
+	--map-bg: #dfe3e8;
+	--marker-ring: rgb(255 255 255 / 0.9);
+	--map-overlay-bg: rgb(255 255 255 / 0.95);
+	--marker-shadow: rgb(0 0 0 / 0.25);
+
+	/* 詳細パネルの後ろを覆う幕と、浮かせる部品の影 */
+	--backdrop: rgb(0 0 0 / 0.7);
+	--tooltip-shadow: rgb(0 0 0 / 0.4);
+
+	/* 気象庁の警報・注意報（黄系） */
+	--warn-bg: #fffbeb;
+	--warn-line: #fde68a;
+	--warn-text: #92400e;
+	--warn-text-strong: #78350f;
+	--warn-icon: #b45309;
+	--warn-chip-bg: #fef3c7;
+	--warn-chip-text: #92400e;
+	--warn-chip-line: #fde68a;
+	/* 危険警報（警報と特別警報の中間・橙系） */
+	--danger-chip-bg: #ffedd5;
+	--danger-chip-text: #9a3412;
+	--danger-chip-line: #fdba74;
+	/* 特別警報・噴火警報・エラー（赤系） */
+	--severe-bg: #fef2f2;
+	--severe-chip-bg: #fee2e2;
+	--severe-text: #991b1b;
+	--severe-line: #fecaca;
+	/* 津波（青系） */
+	--tsunami-bg: #eff6ff;
+	--tsunami-line: #bfdbfe;
+	--tsunami-text: #1e40af;
+
+	/* 行の警報バッジに重ねるツールチップ（明るい画面の上で目立つよう暗い地） */
+	--tooltip-bg: #1e293b;
+	--tooltip-text: #e2e8f0;
+	--tooltip-sub: #94a3b8;
+	--tooltip-line: #334155;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--safe: #4ade80;
+		--caution: #facc15;
+		--alert: #fb923c;
+		--danger: #f87171;
+		--on-risk: #131417;
+		--on-risk-chip: rgb(255 255 255 / 0.35);
+
+		--line-strong: #5a5e68;
+
+		--map-tile-filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9);
+		--map-bg: #1c1d21;
+		--marker-ring: rgb(19 20 23 / 0.9);
+		--map-overlay-bg: rgb(28 29 33 / 0.95);
+		--marker-shadow: rgb(0 0 0 / 0.6);
+
+		--backdrop: rgb(0 0 0 / 0.75);
+		--tooltip-shadow: rgb(0 0 0 / 0.6);
+
+		--warn-bg: #2b2410;
+		--warn-line: #5c4a14;
+		--warn-text: #fcd34d;
+		--warn-text-strong: #fde68a;
+		--warn-icon: #fbbf24;
+		--warn-chip-bg: #3d3212;
+		--warn-chip-text: #fde68a;
+		--warn-chip-line: #6b5517;
+		--danger-chip-bg: #3f2512;
+		--danger-chip-text: #fdba74;
+		--danger-chip-line: #8a4a1c;
+		--severe-bg: #2e1717;
+		--severe-chip-bg: #3f1a1a;
+		--severe-text: #fca5a5;
+		--severe-line: #7f2a2a;
+		--tsunami-bg: #172238;
+		--tsunami-line: #2c4470;
+		--tsunami-text: #93c5fd;
+
+		--tooltip-bg: #2e3036;
+		--tooltip-text: #e7e8ec;
+		--tooltip-sub: #a9adb8;
+		--tooltip-line: #4a4d55;
+	}
+}
