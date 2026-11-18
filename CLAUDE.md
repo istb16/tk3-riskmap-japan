@@ -55,6 +55,10 @@ src/
     +layout.ts        # prerender=true, ssr=false
     +layout.svelte    # 共通の土台（tk-base.css）と app.css の読み込み・Google タグ
     +page.svelte      # メインUI（ランキング + 地図 + 詳細パネル）
+scripts/
+  ogp.mjs             # static/ogp.svg → static/ogp.png の書き出し（npm run ogp）
+static/
+  ogp.svg / ogp.png   # OGP 画像の元と、og:image が指す 1200×630 の PNG
 ```
 
 ## 対象地域（regions.ts）
@@ -561,6 +565,16 @@ PR では `.github/workflows/ci.yml` が、下の 2 つのジョブと同じ確�
 - **`deploy` ジョブの Node は 24 に留めている**（`browser-tests` は 26）。firebase-tools が依存する
   `superstatic` が engines で `"20 || 22 || 24"` を要求し、26 だと `npx` が `EBADENGINE` で落ちる。
   superstatic が対応したら揃えて上げる
+
+## OGP 画像
+
+`og:image` は `https://riskmap.tk3.biz/ogp.png`（1200×630）を絶対 URL で指す。
+SNS は SVG を表示せず、相対 URL も解決しないため。
+
+- 元は `static/ogp.svg`。見た目は tk3 apps base の明るい配色・アプリのアイコン・危険度の帯の色に合わせている
+- 直したら `npm run ogp` で PNG を書き出し、**PNG を目で見て確かめてからコミットする**。
+  ビルドでは作らない —— 日本語の書体は書き出す環境のものを使うので、書体の無い CI で作ると崩れる
+- アプリの紹介文（64地域など）を変えたら、画像の文言も合わせる
 
 ## ビルド情報の表示
 

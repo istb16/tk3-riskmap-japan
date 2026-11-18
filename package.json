@@ -1,7 +1,7 @@
 {
 	"name": "tk3-riskmap-japan",
 	"private": true,
-	"version": "0.1.15",
+	"version": "0.1.17",
 	"type": "module",
 	"imports": {
 		"#lib": "./src/lib",
@@ -23,7 +23,8 @@
 		"test:all": "npm test && npm run test:browser",
 		"lint": "eslint . && prettier --check .",
 		"lint:fix": "eslint . --fix && prettier --write .",
-		"format": "prettier --write ."
+		"format": "prettier --write .",
+		"ogp": "node scripts/ogp.mjs"
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
