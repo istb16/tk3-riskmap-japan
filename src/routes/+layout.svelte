@@ -1,11 +1,12 @@
 <script lang="ts">
-	import favicon from '#lib/assets/favicon.png';
+	// 共通の土台（tk3 apps base）を先に、アプリ固有の色をその後に読み込む
+	import '#lib/styles/tk-base.css';
+	import '../app.css';
 
 	let { children } = $props();
 </script>
 
 <svelte:head>
-	<link rel="icon" href={favicon} type="image/png" />
 	<!-- Google tag (gtag.js) -->
 	<script async src="https://www.googletagmanager.com/gtag/js?id=G-FPG4BRYYFK"></script>
 	<script>

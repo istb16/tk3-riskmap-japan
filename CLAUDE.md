@@ -37,6 +37,8 @@ src/
     stores/
       riskStore.ts    # グローバルstate・自動更新（5分間隔）
       pinnedStore.ts  # ピン留め地域（localStorage 永続化）
+    styles/
+      tk-base.css     # tk3 apps の共通の土台（手を加えずに写す・Prettier の対象外）
     utils/
       concurrent.ts   # 同時実行数を制限した並列fetch（順序を保持）
       geo.ts          # ハーバサイン距離
@@ -47,9 +49,11 @@ src/
       time.ts         # DAY_MS・経過日数
     regions.ts        # 対象64地域（46都道府県＋北海道8＋離島10）の定義
     types.ts          # 型定義（RegionRisk, WeatherData, etc.）
+  app.css             # アプリ固有の色（明暗の両方の値）
+  app.html            # <head>（color-scheme・theme-color・アイコン）
   routes/
     +layout.ts        # prerender=true, ssr=false
-    +layout.svelte    # favicon注入
+    +layout.svelte    # 共通の土台（tk-base.css）と app.css の読み込み・Google タグ
     +page.svelte      # メインUI（ランキング + 地図 + 詳細パネル）
 ```
 
@@ -629,25 +633,46 @@ PR では `.github/workflows/ci.yml` が、下の 2 つのジョブと同じ確�
 
 ## カラーパレット
 
+見た目の土台は tk3.biz のアプリで共通の **tk3 apps base**（`src/lib/styles/tk-base.css`）。
+`+layout.svelte` で `tk-base.css` → `src/app.css` の順に読み込む。
+
+- **`tk-base.css` には手を加えない。** 直すときは元の版を直して写し直す
+  （Prettier でも整形しないよう `.prettierignore` に入れてある）
+- **端末の設定（`prefers-color-scheme`）で明るい配色と暗い配色を切り替える。** 切り替えボタンは作らない。
+  `light-dark()` は使わない（まだ新しく使えるようになった段階の機能のため）
+- 地・面・文字・線は土台の `--tk-*` を使う（`--tk-bg`・`--tk-surface`・`--tk-surface-2`・`--tk-ink`・
+  `--tk-body`・`--tk-muted`・`--tk-line`・`--tk-line-strong`・`--tk-danger`・`--tk-font-mono`）。
+  入力欄の枠や強めの線は `--tk-line-strong`（地とのコントラスト 3:1。`--tk-line` は区切り線用）
+- アクセントは `--tk-accent: var(--tk-red)`（アイコンの主色）。ただし操作部品（フォーカス枠・タブ・
+  ピン留め・LIVE）は**危険度の赤と紛れないよう `--tk-blue`** にしている
+- アプリ固有の色（危険度・地図・警報の帯・ツールチップなど）は `src/app.css` に、
+  明暗の両方の値を持たせて置く。**コンポーネントに色の値を直に書かない**
+- コントラストは明暗どちらでも、文字は 4.5:1 以上、線や図形は 3:1 以上
+
 危険度の帯は `scoringRules.ts` の `RISK_BANDS` が唯一の定義。UIは `riskBand()` 経由で
 CSSカスタムプロパティ名を受け取るので、**しきい値や色を `+page.svelte` に直接書かないこと**。
 
-| 危険度 | CSS変数     | 色              | スコア  |
-| ------ | ----------- | --------------- | ------- |
-| 平穏   | `--safe`    | `#16a34a`（緑） | 0〜9    |
-| 注意   | `--caution` | `#ca8a04`（黄） | 10〜29  |
-| 警戒   | `--alert`   | `#ea580c`（橙） | 30〜49  |
-| 危険   | `--danger`  | `#dc2626`（赤） | 50〜100 |
+| 危険度 | CSS変数     | 明るい配色      | 暗い配色        | スコア  |
+| ------ | ----------- | --------------- | --------------- | ------- |
+| 平穏   | `--safe`    | `#1a7340`（緑） | `#4ade80`（緑） | 0〜9    |
+| 注意   | `--caution` | `#8a6100`（黄） | `#facc15`（黄） | 10〜29  |
+| 警戒   | `--alert`   | `#c2410c`（橙） | `#fb923c`（橙） | 30〜49  |
+| 危険   | `--danger`  | `#b91c1c`（赤） | `#f87171`（赤） | 50〜100 |
 
-その他の主要な変数は `+page.svelte` の `:root` を参照（背景 `--bg`、カード `--surface` など）。
+- 危険度の色は面の上の文字として 4.5:1 以上になる濃さにしている。塗りの上の文字（トップの
+  バナー・地図のマーカー）は `--on-risk`（明るい配色では白、暗い配色では地の色）
+- 隣り合う帯どうしは明るさが近いので、色相に加えて**マーカーの大きさとラベル**で区別する
+  （`markerSizePx`）
+- 地図のタイル（OpenStreetMap）は明るい絵しかないので、暗い配色では `--map-tile-filter` で
+  反転して暗くする。マーカーはタイルの外にあるので反転されない
 
 ## コミット時の制限
 
 - コミットログは日本語とする
 - Co-Authored-By は記載しない
-- **`main` に直接コミットする。** 一人での開発なのでブランチを切らず、PR も作らない。
-  デフォルトブランチだからと作業ブランチを提案しなくてよい
-  （`main` への push で `.github/workflows/deploy.yml` が自動デプロイする）
+- **`main` には直接 push できない（保護されていて PR が必須）。** 作業ブランチを切って PR を出し、
+  CI（`verify`）が通ってからマージする。マージで `main` に入ると
+  `.github/workflows/deploy.yml` が自動デプロイする
 - **コミットのたびに `package.json` の `version` をパッチ 0.0.1 加算する**
   （`0.1.0` → `0.1.1` → `0.1.2`）。バージョンを含めてステージし、1つのコミットにする。
   **理由: このバージョンはヘッダーに表示され、どのデプロイが公開されているかの判別に使う。**
