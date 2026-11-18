@@ -10,7 +10,7 @@ export const error = writable<string | null>(null);
 export const selectedRegion = writable<RegionRisk | null>(null);
 
 export const rankedRegions = derived(regions, ($r) =>
-	[...$r].sort((a, b) => b.riskScore - a.riskScore)
+	$r.toSorted((a, b) => b.riskScore - a.riskScore)
 );
 
 let refreshTimer: ReturnType<typeof setInterval> | null = null;
