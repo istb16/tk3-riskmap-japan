@@ -914,7 +914,8 @@
 
 	/**
 	 * サイト名の右に添えるバージョンとビルド日。開発・運用側の情報で、閲覧者が読むべき
-	 * ものではないのでハザード表示と競合しないよう最小・低コントラストにする。
+	 * ものではないのでハザード表示と競合しないよう最小・控えめな色（--tk-muted）にする
+	 * （それでも文字として 4.5:1 は保つ）。
 	 * `flex-shrink: 0` はタイトルの ellipsis に食われないため。
 	 * 狭い画面では隠す —— 幅を食ってタイトルやデータ取得時刻を押し出すほどの価値はない
 	 * （デプロイの確認はデスクトップで行う）。
@@ -922,8 +923,7 @@
 	.build-info {
 		font-family: var(--tk-font-mono);
 		font-size: 10px;
-		color: var(--tk-body);
-		opacity: 0.6;
+		color: var(--tk-muted);
 		white-space: nowrap;
 		flex-shrink: 0;
 		font-variant-numeric: tabular-nums;
@@ -1283,7 +1283,8 @@
 	.score-unit {
 		font-size: 0.35em;
 		font-weight: 400;
-		opacity: 0.7;
+		/* 薄くしすぎると警戒（橙）の帯の上で 4.5:1 を割る。0.92 が4つの帯すべてで届く上限 */
+		opacity: 0.92;
 		letter-spacing: 0;
 	}
 
@@ -1367,7 +1368,8 @@
 	}
 
 	/**
-	 * ピンボタン。未ピンは輪郭だけ・薄く、ピン済みは塗って色を付ける。
+	 * ピンボタン。未ピンは輪郭だけ・控えめな色（--tk-muted。図形として地に 3:1 以上）、
+	 * ホバー・フォーカスで濃くし、ピン済みは塗って色を付ける。
 	 * 単色（currentColor）なので、危険度の4色ともタイプバッジの絵文字とも競合しない。
 	 *
 	 * タップ領域は 44px（iOS の指針）を幅で確保し、高さは `align-self: stretch` で
@@ -1385,28 +1387,25 @@
 		background: transparent;
 		border: 1px solid transparent;
 		border-radius: 10px;
-		color: var(--tk-body);
-		opacity: 0.35;
+		color: var(--tk-muted);
 		cursor: pointer;
 		transition:
-			opacity 0.15s,
 			color 0.15s,
 			background 0.15s;
 	}
 
 	.pin-btn:hover {
-		opacity: 1;
+		color: var(--tk-ink);
 		background: var(--tk-surface-2);
 	}
 
 	.pin-btn:focus-visible {
 		outline: 2px solid var(--tk-blue);
 		outline-offset: -2px;
-		opacity: 1;
+		color: var(--tk-ink);
 	}
 
 	.pin-btn.pin-on {
-		opacity: 1;
 		color: var(--tk-blue);
 	}
 

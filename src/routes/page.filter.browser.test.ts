@@ -228,14 +228,25 @@ describe('ヘッダーのビルド情報', () => {
 	});
 
 	it('ハザード表示より小さく・控えめに描かれる', async () => {
-		await render(Page);
-		const build = $('.build-info');
-		const title = $('h1');
-		if (build === null || title === null) throw new Error('ヘッダーの構成が壊れている');
+		// 控えめさは opacity ではなく補助の文字色（--tk-muted）で出す。opacity で落とすと
+		// 文字のコントラストが 4.5:1 を割る。このテストは土台の CSS を読まないので、
+		// 変数に目印の色を入れて、それが使われていることを確かめる
+		const root = document.documentElement;
+		root.style.setProperty('--tk-muted', 'rgb(1, 2, 3)');
+		try {
+			await render(Page);
+			const build = $('.build-info');
+			const title = $('h1');
+			if (build === null || title === null) throw new Error('ヘッダーの構成が壊れている');
 
-		const buildSize = parseFloat(getComputedStyle(build).fontSize);
-		expect(buildSize).toBeLessThan(parseFloat(getComputedStyle(title).fontSize));
-		expect(parseFloat(getComputedStyle(build).opacity)).toBeLessThan(1);
+			const buildSize = parseFloat(getComputedStyle(build).fontSize);
+			expect(buildSize).toBeLessThan(parseFloat(getComputedStyle(title).fontSize));
+			expect(getComputedStyle(build).color).toBe('rgb(1, 2, 3)');
+			expect(getComputedStyle(title).color).not.toBe('rgb(1, 2, 3)');
+			expect(getComputedStyle(build).opacity).toBe('1');
+		} finally {
+			root.style.removeProperty('--tk-muted');
+		}
 	});
 });
 
