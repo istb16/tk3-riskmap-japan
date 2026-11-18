@@ -376,7 +376,7 @@
 	</li>
 {/snippet}
 
-<div class="app">
+<div class="app" class:map-tab={activeTab === 'map'}>
 	<!-- Header -->
 	<header class="app-header">
 		<div class="tk-header">
@@ -1183,6 +1183,26 @@
 		flex: 1;
 	}
 
+	/*
+	 * モバイルの地図タブも画面の高さに収める。地図の高さを「画面 − 決め打ちの値」にすると、
+	 * ヘッダー・タブ・絞り込み欄の実際の高さとずれて、地図の下端（凡例）が画面の外に出る。
+	 * 残りの高さを flex で地図に渡せば、上に何が並んでも下端は画面内に来る。
+	 * ランキングのタブはこれまでどおりページごとスクロールする。
+	 */
+	@media (max-width: 1023px) {
+		.app.map-tab {
+			height: 100dvh;
+		}
+
+		.app.map-tab .content-area {
+			min-height: 0;
+		}
+
+		.app.map-tab .leaflet-map {
+			min-height: 240px;
+		}
+	}
+
 	/* ─── Desktop layout ─── */
 	@media (min-width: 1024px) {
 		.tab-nav {
@@ -1634,7 +1654,19 @@
 		white-space: nowrap;
 	}
 
+	/* 狭い画面では地図の幅に収まるよう、項目の単位で折り返す */
+	@media (max-width: 599px) {
+		.map-legend {
+			flex-wrap: wrap;
+			justify-content: center;
+			row-gap: 4px;
+			width: max-content;
+			max-width: calc(100% - 24px);
+		}
+	}
+
 	.legend-item {
+		white-space: nowrap;
 		display: flex;
 		align-items: center;
 		gap: 5px;
