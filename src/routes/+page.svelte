@@ -912,7 +912,11 @@
 		padding: 2px 5px;
 		border-radius: 2px;
 		flex-shrink: 0;
-		animation: blink 2s steps(1) infinite;
+
+		/* 点滅は動きを減らす設定のときは付けない（地震計の帯と同じ扱い） */
+		@media (prefers-reduced-motion: no-preference) {
+			animation: blink 2s steps(1) infinite;
+		}
 	}
 
 	@keyframes blink {
@@ -974,7 +978,9 @@
 	}
 
 	.blink {
-		animation: blink 1s steps(1) infinite;
+		@media (prefers-reduced-motion: no-preference) {
+			animation: blink 1s steps(1) infinite;
+		}
 	}
 
 	.share-btn {
