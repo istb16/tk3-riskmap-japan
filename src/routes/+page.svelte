@@ -962,7 +962,7 @@
 
 	.share-btn {
 		background: transparent;
-		border: 1px solid var(--line-strong);
+		border: 1px solid var(--tk-line-strong);
 		color: var(--tk-body);
 		padding: 5px 12px;
 		border-radius: 4px;
@@ -1052,12 +1052,14 @@
 		gap: 6px;
 		padding: 0 10px;
 		background: var(--tk-bg);
-		border: 1px solid var(--tk-line);
+		border: 1px solid var(--tk-line-strong);
 		border-radius: 8px;
 	}
 
+	/* 入力欄そのものの枠は消しているので、フォーカスの印は囲みの側に出す */
 	.filter-field:focus-within {
-		border-color: var(--line-strong);
+		border-color: var(--tk-blue);
+		outline: 1px solid var(--tk-blue);
 	}
 
 	.filter-icon {
@@ -1852,7 +1854,7 @@
 		align-items: center;
 		padding: 8px 12px;
 		background: var(--tk-surface-2);
-		border-top: 1px solid var(--line-strong);
+		border-top: 1px solid var(--tk-line-strong);
 	}
 
 	.breakdown-total-label {
@@ -2155,7 +2157,7 @@
 		font-size: 10px;
 		font-weight: 700;
 		color: var(--tk-body);
-		border: 1px solid var(--line-strong);
+		border: 1px solid var(--tk-line-strong);
 		border-radius: 3px;
 		padding: 1px 5px;
 		letter-spacing: 0.04em;

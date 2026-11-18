@@ -24,9 +24,6 @@
 	/* 危険度の色で塗ったバナーの中の理由チップ */
 	--on-risk-chip: rgb(0 0 0 / 0.25);
 
-	/* 強めの線（入力欄のフォーカス・合計行の区切りなど） */
-	--line-strong: #9aa0ac;
-
 	/* 地図。暗い配色ではタイルを反転して暗くし、マーカーの縁は地の色に合わせる */
 	--map-tile-filter: none;
 	--map-bg: #dfe3e8;
@@ -68,6 +65,14 @@
 	--tooltip-line: #334155;
 }
 
+/*
+ * フォーカスの印。土台は --tk-accent（このアプリでは赤）で描くが、危険度の赤と紛れないよう
+ * 操作部品の色（--tk-blue）にそろえる。
+ */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+	outline-color: var(--tk-blue);
+}
+
 @media (prefers-color-scheme: dark) {
 	:root {
 		--safe: #4ade80;
@@ -76,8 +81,6 @@
 		--danger: #f87171;
 		--on-risk: #131417;
 		--on-risk-chip: rgb(255 255 255 / 0.35);
-
-		--line-strong: #5a5e68;
 
 		--map-tile-filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9);
 		--map-bg: #1c1d21;

@@ -641,7 +641,8 @@ PR では `.github/workflows/ci.yml` が、下の 2 つのジョブと同じ確�
 - **端末の設定（`prefers-color-scheme`）で明るい配色と暗い配色を切り替える。** 切り替えボタンは作らない。
   `light-dark()` は使わない（まだ新しく使えるようになった段階の機能のため）
 - 地・面・文字・線は土台の `--tk-*` を使う（`--tk-bg`・`--tk-surface`・`--tk-surface-2`・`--tk-ink`・
-  `--tk-body`・`--tk-muted`・`--tk-line`・`--tk-danger`・`--tk-font-mono`）
+  `--tk-body`・`--tk-muted`・`--tk-line`・`--tk-line-strong`・`--tk-danger`・`--tk-font-mono`）。
+  入力欄の枠や強めの線は `--tk-line-strong`（地とのコントラスト 3:1。`--tk-line` は区切り線用）
 - アクセントは `--tk-accent: var(--tk-red)`（アイコンの主色）。ただし操作部品（フォーカス枠・タブ・
   ピン留め・LIVE）は**危険度の赤と紛れないよう `--tk-blue`** にしている
 - アプリ固有の色（危険度・地図・警報の帯・ツールチップなど）は `src/app.css` に、
@@ -669,9 +670,9 @@ CSSカスタムプロパティ名を受け取るので、**しきい値や色を
 
 - コミットログは日本語とする
 - Co-Authored-By は記載しない
-- **`main` に直接コミットする。** 一人での開発なのでブランチを切らず、PR も作らない。
-  デフォルトブランチだからと作業ブランチを提案しなくてよい
-  （`main` への push で `.github/workflows/deploy.yml` が自動デプロイする）
+- **`main` には直接 push できない（保護されていて PR が必須）。** 作業ブランチを切って PR を出し、
+  CI（`verify`）が通ってからマージする。マージで `main` に入ると
+  `.github/workflows/deploy.yml` が自動デプロイする
 - **コミットのたびに `package.json` の `version` をパッチ 0.0.1 加算する**
   （`0.1.0` → `0.1.1` → `0.1.2`）。バージョンを含めてステージし、1つのコミットにする。
   **理由: このバージョンはヘッダーに表示され、どのデプロイが公開されているかの判別に使う。**
